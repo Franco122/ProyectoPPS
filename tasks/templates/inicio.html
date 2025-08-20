@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stop Market - Inicio</title>
+  <link rel="stylesheet" href="{% static 'css/inicio.css' %}">
+  <link rel="icon" href="{% static 'images/logo.png' %}" type="image/x-icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">
+        <img src="{% static 'images/logo.png' %}" alt="Logo Stop Market" class="logo">
+        <h2>STOP<br>MARKET</h2>
+      </div>
+      <nav class="nav">
+        <a href="#" class="nav-link active"><span>🏠</span> Inicio</a>
+        <a href="{% url 'inventario' %}" class="nav-link"><span>📦</span> Inventario</a>
+        <a href="#" class="nav-link"><span>🚚</span> Proveedores</a>
+        <a href="#" class="nav-link"><span>📈</span> Historial de transacciones</a>
+      </nav>
+      <a href="#" class="logout"><span>🔒</span> Cerrar sesión</a>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="notification">🔔</div>
+      </header>
+
+      <section class="dashboard">
+        <div class="card">
+          <h2><span>💵</span> Efectivo</h2>
+          
+
+          <h3>Total efectivo: ${{ total_efectivo }}</h3>
+        </div>
+        <div class="card">
+          <h2><span>💳</span> Virtual</h2>
+          <p>Total: $0</p>
+        </div>
+        <div class="card">
+          <h2><span>📉</span> Gastos</h2>
+          <p>Total gasto: $0</p>
+        </div>
+      </section>
+
+      <section class="bottom-section">
+        <div class="bottom-box">
+  <h5 style="padding: 15px 20px 0; color:#132144;">💵 Movimientos en efectivo</h5>
+  
+  <!-- Formulario para agregar ingreso -->
+  <form method="POST" action="{% url 'agregar_efectivo' %}" style="padding: 10px 20px;">
+    {% csrf_token %}
+    <input type="number" name="monto" placeholder="Ingrese monto" required style="margin-right:10px; padding:5px;">
+    <input type="text" name="descripcion" placeholder="Descripción" required style="margin-right:10px; padding:5px;">
+    <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
+  </form>
+
+    <!-- Lista de movimientos -->
+   <h3 class = "inicio.lista">Lista de ingresos</h3>
+          <ul>
+            {% for ingreso in ingresos %}
+              <li>{{ ingreso.fecha|date:"d/m/Y H:i" }} - ${{ ingreso.monto }} </li>
+            {% empty %}
+              <li>No hay ingresos aún.</li>
+            {% endfor %}
+          </ul>
+  </div>
+        <div class="bottom-box"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

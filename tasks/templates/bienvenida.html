@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Bienvenida</title>
+</head>
+<body>
+    <h2>¡Hola, {{ usuario.username }}!</h2>
+    <p>Te logueaste con éxito.</p>
+    <a href="{% url 'logout' %}">Cerrar sesión</a>
+</body>
+</html>

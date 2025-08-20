@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventario{% endblock %}
+
+{% block content %}
+<h2>📦 Lista de Productos</h2>
+
+
+<a href="{% url 'agregar_producto' %}" class="btn btn-success">
+  <i class="bi bi-plus"></i>➕ Agregar producto
+</a>
+
+
+<table class="table table-striped table-bordered">
+  <thead class="table-dark">
+    <tr>
+      <th>ID</th>
+      <th>Producto</th>
+      <th>Categoría</th>
+      <th>Cantidad</th>
+      <th>Precio</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for producto in productos %}
+    <tr>
+      <td>{{ producto.id }}</td>
+      <td>{{ producto.nombre }}</td>
+      <td>{{ producto.categoria }}</td>
+      <td>{{ producto.cantidad }}</td>
+      <td>${{ producto.precio }}</td>
+      <td>
+        <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm">✏️ Editar</a>
+        <a href="{% url 'eliminar_producto' producto.id %}" class="btn btn-danger btn-sm">🗑️ Eliminar</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

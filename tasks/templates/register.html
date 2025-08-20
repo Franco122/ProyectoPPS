@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro - StopMarket</title>
+  <link rel="stylesheet" href="{% static 'css/register.css' %}" />
+</head>
+<body>
+  <div class="left">
+    <div class="form-container">
+      <h2>Registro de usuario</h2>
+
+      <!-- Mensajes del sistema -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        {% if form.errors %}
+      <div class="form-errors">
+        <ul>
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li>{{ field.label }}: {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+
+        <button type="submit">Registrarme</button>
+      </form>
+
+      <p style="margin-top: 1rem;">
+        ¿Ya tenés cuenta? <a href="{% url 'login' %}">Ingresá acá</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="right">
+    <img src="{% static 'images/imagenLogin.png' %}" alt="Imagen Registro" />
+  </div>
+</body>
+</html>

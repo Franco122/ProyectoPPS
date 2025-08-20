@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>Lista de Productos</h2>
+    <a href="{% url 'agregar_producto' %}" class="btn btn-success mb-3">Agregar Producto</a>
+    
+    <table class="table table-bordered table-striped">
+      <thead class="table-dark">
+        <tr>
+          <th>Nombre</th>
+          <th>Categoría</th>
+          <th>Cantidad</th>
+          <th>Precio</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for producto in productos %}
+          <tr>
+            <td>{{ producto.nombre }}</td>
+            <td>{{ producto.categoria }}</td>
+            <td>{{ producto.cantidad }}</td>
+            <td>${{ producto.precio }}</td>
+            <td>{{ producto.stock }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">No hay productos cargados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - StopMarket</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+  <div class="container">
+    <div class="login-panel">
+      <div class="form-container">
+        <h2>Iniciar sesión</h2>
+
+        <!-- Mensajes del sistema -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" id="loginForm">
+          {% csrf_token %}
+
+          <label for="id_username">Nombre de usuario</label>
+          <input type="text" name="username" id="id_username" required>
+
+          <label for="id_password">Contraseña</label>
+          <input type="password" name="password" id="id_password" required>
+
+          <button type="submit" class="login">Ingresar</button>
+        </form>
+
+        <p>¿No tenés cuenta? <a href="{% url 'registro' %}">Registrate acá</a></p>
+      </div>
+    </div>
+    <div class="image-panel">
+      <img src="{% static 'images/imagenLogin.png' %}" alt="Imagen StopMarket">
+    </div>
+  </div>
+
+  <script src="{% static 'javascript/login.js' %}"></script>
+</body>
+</html>
