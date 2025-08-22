@@ -26,9 +26,9 @@ class RegistroUsuarioForm(UserCreationForm):
         widget=forms.PasswordInput,
         help_text='Debe tener al menos 8 caracteres, no ser común ni solo numérica.',
         error_messages={
-            'password_too_short': 'La contraseña debe tener al menos 8 caracteres.',
-            'password_too_common': 'La contraseña es demasiado común.',
-            'password_entirely_numeric': 'La contraseña no puede ser solo números.',
+            'La contraseña demasiado corta': 'La contraseña debe tener al menos 8 caracteres.',
+            'La contraseña demasiado comun': 'La contraseña es demasiado común.',
+            'La contraseña no pueden ser solo numeros': 'La contraseña no puede ser solo números.',
         }
     )
     password2 = forms.CharField(
