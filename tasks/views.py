@@ -98,14 +98,32 @@ def transacciones(request):
     return render(request, 'transacciones.html')  # asegurate de tener este template
 
 @login_required
+@login_required
 def agregar_producto(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
-            form.save()
+            nombre = form.cleaned_data['nombre']
+            categoria = form.cleaned_data['categoria']
+            cantidad = form.cleaned_data['cantidad']
+            precio = form.cleaned_data['precio']
+            stock = form.cleaned_data['stock']
+
+            producto_existente = Producto.objects.filter(nombre=nombre, categoria=categoria).first()
+
+            if producto_existente:
+                # Si ya existe, actualizamos stock y cantidad
+                producto_existente.cantidad += cantidad
+                producto_existente.stock += stock
+                producto_existente.precio = precio  
+                producto_existente.save()
+            else:
+                form.save()
+
             return redirect('lista_productos')
     else:
         form = ProductoForm()
+
     return render(request, 'agregar_producto.html', {'form': form})
 
 @login_required
