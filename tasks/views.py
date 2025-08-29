@@ -91,11 +91,11 @@ def inventario(request):
 
 @login_required
 def proveedores(request):
-    return render(request, 'proveedores.html')  # asegurate de tener este template
+    return render(request, 'proveedores.html')  
 
 @login_required
 def transacciones(request):
-    return render(request, 'transacciones.html')  # asegurate de tener este template
+    return render(request, 'transacciones.html') 
 
 @login_required
 @login_required
@@ -103,8 +103,8 @@ def agregar_producto(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
-            nombre = form.cleaned_data['nombre']
-            categoria = form.cleaned_data['categoria']
+            nombre = form.cleaned_data['nombre'].strip().lower()
+            categoria = form.cleaned_data['categoria'].strip().lower()
             cantidad = form.cleaned_data['cantidad']
             precio = form.cleaned_data['precio']
             stock = form.cleaned_data['stock']

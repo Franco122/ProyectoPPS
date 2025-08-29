@@ -24,10 +24,11 @@
             <td>{{ producto.cantidad }}</td>
             <td>${{ producto.precio }}</td>
             <td>{{ producto.stock }}</td>
-             <!-- Botón Editar -->
+           
             <td>
-              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <div class="d-grid gap-2 d-md-flex justify-content-md-center">
                 <button type="button" class="btn btn-success">Agregar</button>
+                <button type="button" class="btn btn-primary">Editar</button>
                 <button type="button" class="btn btn-danger">Eliminar</button>
             </div>
             </td>
@@ -42,20 +43,17 @@
   </div>
   <script>
 document.addEventListener("DOMContentLoaded", function () {
-  // Botón "Agregar"
+  
   document.querySelectorAll(".btn-success").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      // Buscar la fila del producto
+      
       let fila = this.closest("tr");
-      let stockCell = fila.querySelector("td:nth-child(5)"); // columna stock
+      let stockCell = fila.querySelector("td:nth-child(5)");
       let stock = parseInt(stockCell.innerText);
-
-      // Aumentar stock en +1
       stockCell.innerText = stock + 1;
     });
   });
 
-  // Botón "Eliminar"
   document.querySelectorAll(".btn-danger").forEach(function (btn) {
     btn.addEventListener("click", function () {
       if (confirm("¿Seguro que deseas eliminar este producto?")) {

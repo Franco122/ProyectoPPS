@@ -6,10 +6,8 @@ from tasks import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Redirige '/' a '/login/' para mayor claridad
     path('', lambda request: redirect('login')),
     
-    # Registro y login/logout
     path('registro/', views.registrar_usuario, name='registro'),
     path('login/', views.login_usuario, name='login'),
     path('logout/', views.logout_usuario, name='logout'),
