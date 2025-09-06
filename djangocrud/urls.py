@@ -21,4 +21,7 @@ urlpatterns = [
     path('proveedores/', views.proveedores, name='proveedores'),
     path('transacciones/', views.transacciones, name='transacciones'),
     path('agregar-efectivo/', views.agregar_efectivo, name='agregar_efectivo'),
+    path('ingresos/editar/<int:pk>/', views.editar_ingreso, name='editar_ingreso'),
+    path('ingresos/eliminar/<int:pk>/', views.eliminar_ingreso, name='eliminar_ingreso'),
+    path("cerrar-dia/", views.cerrar_dia, name="cerrar_dia"),
 ]

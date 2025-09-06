@@ -46,29 +46,60 @@
           <p>Total gasto: $0</p>
           <button class = "#gastos_agregar">Agregar</button> 
         </div>
+        <!--
+          <div class="cierre-dia">
+             
+            <h3>Caja del día</h3>
+            <form method="post" action="{% url 'cerrar_dia' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    Cerrar día
+                </button>
+            </form>
+        </div>
+        -->
       </section>
 
       <section class="bottom-section">
         <div class="bottom-box">
   <h5 style="padding: 15px 20px 0; color:#132144;">💵 Movimientos en efectivo</h5>
-  
-  <!-- Formulario para agregar ingreso -->
-  <form method="POST" action="{% url 'agregar_efectivo' %}" style="padding: 10px 20px;">
-    {% csrf_token %}
-    <input type="number" name="monto" placeholder="Ingrese monto" required style="margin-right:10px; padding:5px;">
-    <input type="text" name="descripcion" placeholder="Descripción" required style="margin-right:10px; padding:5px;">
-    <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
-  </form>
 
-    <!-- Lista de movimientos -->
-   <h3 class = "inicio.lista">Lista de ingresos</h3>
-          <ul>
-            {% for ingreso in ingresos %}
-              <li>{{ ingreso.fecha|date:"d/m/Y H:i" }} - ${{ ingreso.monto }} </li>
-            {% empty %}
-              <li>No hay ingresos aún.</li>
-            {% endfor %}
-          </ul>
+<!-- Formulario para agregar ingreso -->
+<form method="POST" action="{% url 'agregar_efectivo' %}" class="row g-2 align-items-center px-3 py-2">
+  {% csrf_token %}
+  <div class="col-auto">
+    <input type="number" name="monto" class="form-control form-control-sm" placeholder="Ingrese monto" required>
+  </div>
+  <div class="col-auto">
+    <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción" required>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
+  </div>
+</form>
+
+<!-- Lista de movimientos -->
+<h6 class="mt-3 px-3">Lista de ingresos</h6>
+<ul class="list-group list-group-flush">
+  {% for ingreso in ingresos %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ ingreso.fecha|date:"d/m/Y H:i" }}</strong> - ${{ ingreso.monto }}
+        {% if ingreso.descripcion %}
+          <span class="text-muted">({{ ingreso.descripcion }})</span>
+        {% endif %}
+      </div>
+      <div>
+        <a href="{% url 'editar_ingreso' ingreso.id %}" class="btn btn-warning btn-sm me-1">✏️</a>
+        <a href="{% url 'eliminar_ingreso' ingreso.id %}" 
+           class="btn btn-danger btn-sm"
+           onclick="return confirm('¿Seguro que deseas eliminar este ingreso?')">🗑️</a>
+      </div>
+    </li>
+  {% empty %}
+    <li class="list-group-item">No hay ingresos aún.</li>
+  {% endfor %}
+</ul>
   </div>
         <div class="bottom-box"></div>
       </section>

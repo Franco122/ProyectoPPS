@@ -9,8 +9,11 @@ from django.contrib import messages
 from .models import IngresoEfectivo
 from .forms import IngresoEfectivoForm
 from django.db import models
+from django.shortcuts import get_object_or_404
+from .models import IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario
+from datetime import datetime
+from django.db.models import Sum
 
-# -------- Vistas públicas --------
 
 # Registro
 def registrar_usuario(request):
@@ -18,11 +21,11 @@ def registrar_usuario(request):
         form = RegistroUsuarioForm(request.POST)
         if form.is_valid():
             user = form.save()
-            print("✅ Usuario creado:", user.username)  # Debug en consola
+            print("✅ Usuario creado:", user.username)  
             messages.success(request, 'Usuario creado correctamente. Ahora podés iniciar sesión.')
             return redirect('login')
         else:
-            print("❌ Errores del formulario:", form.errors)  # Debug en consola
+            print("❌ Errores del formulario:", form.errors) 
             messages.error(request, 'Error al registrar. Verificá los datos.')
     else:
         form = RegistroUsuarioForm()
@@ -36,7 +39,7 @@ def registro(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Usuario registrado con éxito. Ya podés iniciar sesión.')
-            return redirect('login')  # Cambia 'login' por el nombre de tu URL de login
+            return redirect('login')  
         else:
             messages.error(request, 'Por favor corregí los errores en el formulario.')
     else:
@@ -68,7 +71,7 @@ def inicio(request):
         form = IngresoEfectivoForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('inicio')  # Asegurate de que la URL se llame 'inicio'
+            return redirect('inicio') 
     else:
         form = IngresoEfectivoForm()
 
@@ -112,7 +115,6 @@ def agregar_producto(request):
             producto_existente = Producto.objects.filter(nombre=nombre, categoria=categoria).first()
 
             if producto_existente:
-                # Si ya existe, actualizamos stock y cantidad
                 producto_existente.cantidad += cantidad
                 producto_existente.stock += stock
                 producto_existente.precio = precio  
@@ -140,3 +142,38 @@ def agregar_efectivo(request):
     return redirect('inicio')
 
 
+@login_required
+def eliminar_ingreso(request, pk):
+    ingreso = get_object_or_404(IngresoEfectivo, pk=pk)
+    ingreso.delete()
+    return redirect('inicio')
+
+@login_required
+def editar_ingreso(request, pk):
+    ingreso = get_object_or_404(IngresoEfectivo, pk=pk)
+    if request.method == "POST":
+        form = IngresoEfectivoForm(request.POST, instance=ingreso)
+        if form.is_valid():
+            form.save()
+            return redirect('inicio')
+    else:
+        form = IngresoEfectivoForm(instance=ingreso)
+    return render(request, 'editar_ingreso.html', {'form': form})
+
+
+def cerrar_dia(request):
+    if request.method == "POST":
+        hoy = datetime.now().date()
+        ingresos = IngresoEfectivo.objects.filter(fecha__date=hoy).aggregate(total=Sum('monto'))['total'] or 0
+        egresos = Egreso.objects.filter(fecha__date=hoy).aggregate(total=Sum('monto'))['total'] or 0
+        total_final = ingresos - egresos
+
+        CierreDiario.objects.create(
+            fecha=hoy,
+            monto_ingresos=ingresos,
+            monto_egresos=egresos,
+            monto_total=total_final
+        )
+
+       
+        return redirect('inicio')

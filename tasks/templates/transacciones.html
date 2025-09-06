@@ -37,6 +37,20 @@
       <li class="list-group-item">No hay transacciones registradas.</li>
       {% endfor %}
     </ul>
+
+    <h5>Cierres diarios</h5>
+<ul>
+  {% for cierre in cierres %}
+    <li>
+      {{ cierre.fecha }} - Efectivo: ${{ cierre.total_efectivo }} |
+      Virtual: ${{ cierre.total_virtual }} |
+      Egresos: ${{ cierre.total_egresos }} |
+      Total: ${{ cierre.total_final }}
+    </li>
+  {% empty %}
+    <li>No hay cierres aún.</li>
+  {% endfor %}
+</ul>
   </div>
 </div>
 {% endblock %}
