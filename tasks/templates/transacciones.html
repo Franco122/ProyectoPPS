@@ -42,10 +42,9 @@
 <ul>
   {% for cierre in cierres %}
     <li>
-      {{ cierre.fecha }} - Efectivo: ${{ cierre.total_efectivo }} |
-      Virtual: ${{ cierre.total_virtual }} |
-      Egresos: ${{ cierre.total_egresos }} |
-      Total: ${{ cierre.total_final }}
+      {{ cierre.fecha }} - Ingresos: ${{ cierre.monto_ingresos }} |
+      Egresos: ${{ cierre.monto_egresos }} |
+      Total: ${{ cierre.monto_total }}
     </li>
   {% empty %}
     <li>No hay cierres aún.</li>

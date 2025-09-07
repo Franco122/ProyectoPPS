@@ -98,9 +98,33 @@ def proveedores(request):
 
 @login_required
 def transacciones(request):
-    return render(request, 'transacciones.html') 
+    ingresos = IngresoEfectivo.objects.all().order_by('-fecha')
+    egresos = Egreso.objects.all().order_by('-fecha')
+    cierres = CierreDiario.objects.all().order_by('-fecha')
 
-@login_required
+    transacciones = []
+    for ing in ingresos:
+        transacciones.append({
+            'descripcion': ing.descripcion,
+            'categoria': 'Ingreso Efectivo',
+            'monto': ing.monto,
+            'fecha': ing.fecha
+        })
+    for eg in egresos:
+        transacciones.append({
+            'descripcion': eg.descripcion,
+            'categoria': 'Egreso',
+            'monto': eg.monto,
+            'fecha': eg.fecha
+        })
+    # Sort by fecha descending
+    transacciones.sort(key=lambda x: x['fecha'], reverse=True)
+
+    return render(request, 'transacciones.html', {
+        'transacciones': transacciones,
+        'cierres': cierres
+    })
+
 @login_required
 def agregar_producto(request):
     if request.method == 'POST':

@@ -52,6 +52,4 @@ class Egreso(models.Model):
     def __str__(self):
         return f"[Egreso] {self.fecha} - ${self.monto}"
     
-def transacciones(request):
-    cierres = CierreDiario.objects.all().order_by('-fecha')
-    return render(request, "transacciones.html", {"cierres": cierres})
+
