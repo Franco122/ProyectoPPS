@@ -17,6 +17,7 @@
       <th>Categoría</th>
       <th>Cantidad</th>
       <th>Precio</th>
+      <th>Marca</th>
       <th>Acciones</th>
     </tr>
   </thead>
@@ -28,6 +29,7 @@
       <td>{{ producto.categoria }}</td>
       <td>{{ producto.cantidad }}</td>
       <td>${{ producto.precio }}</td>
+      <td>${{ producto.marca }}</td>
       <td>
        
         <a href="{% url 'eliminar_producto' producto.id %}" 

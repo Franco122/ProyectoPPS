@@ -9,7 +9,7 @@ from .models import IngresoEfectivo
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['nombre', 'categoria', 'cantidad', 'precio', 'stock']
+        fields = ['nombre', 'categoria', 'cantidad', 'precio', 'stock', 'marca']
 
 
 class RegistroUsuarioForm(UserCreationForm):

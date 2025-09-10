@@ -135,6 +135,7 @@ def agregar_producto(request):
             cantidad = form.cleaned_data['cantidad']
             precio = form.cleaned_data['precio']
             stock = form.cleaned_data['stock']
+            marca = form.cleaned_data['marca']
 
             producto_existente = Producto.objects.filter(nombre=nombre, categoria=categoria).first()
 
