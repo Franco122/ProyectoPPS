@@ -29,7 +29,11 @@ urlpatterns = [
     path('proveedores/eliminar/<int:pk>/', views.eliminar_proveedor, name='eliminar_proveedor'),
     path('transacciones/', views.transacciones, name='transacciones'),
     path('agregar-efectivo/', views.agregar_efectivo, name='agregar_efectivo'),
+    path('agregar-virtual/', views.agregar_virtual, name='agregar_virtual'),
+    path('virtual/editar/<int:pk>/', views.editar_virtual, name='editar_virtual'),
+    path('virtual/eliminar/<int:pk>/', views.eliminar_virtual, name='eliminar_virtual'),
     path('ingresos/editar/<int:pk>/', views.editar_ingreso, name='editar_ingreso'),
     path('ingresos/eliminar/<int:pk>/', views.eliminar_ingreso, name='eliminar_ingreso'),
     path("cerrar-dia/", views.cerrar_dia, name="cerrar_dia"),
+    path('agregar-gasto/', views.agregar_gasto, name='agregar_gasto'),
 ]

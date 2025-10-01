@@ -8,8 +8,49 @@ from django.contrib import messages
 from django.db import models
 from django.db.models import Sum
 from datetime import datetime
-from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm
-from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor
+from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm, IngresoVirtualForm, GastoForm
+from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor, Gasto
+
+# Vista para editar movimiento virtual
+@login_required
+def editar_virtual(request, pk):
+    ingreso = get_object_or_404(IngresoVirtual, pk=pk)
+    if request.method == 'POST':
+        form = IngresoVirtualForm(request.POST, instance=ingreso)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Movimiento virtual editado correctamente.')
+            return redirect('inicio')
+    else:
+        form = IngresoVirtualForm(instance=ingreso)
+    return render(request, 'agregar_virtual.html', {'form': form, 'editar': True, 'ingreso': ingreso})
+
+# Vista para eliminar movimiento virtual
+@login_required
+def eliminar_virtual(request, pk):
+    ingreso = get_object_or_404(IngresoVirtual, pk=pk)
+    if request.method == 'POST':
+        ingreso.delete()
+        messages.success(request, 'Movimiento virtual eliminado correctamente.')
+        return redirect('inicio')
+    return render(request, 'eliminar_virtual.html', {'ingreso': ingreso})
+
+# Vista para agregar movimiento virtual
+@login_required
+def agregar_virtual(request):
+    if request.method == 'POST':
+        form = IngresoVirtualForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Movimiento virtual agregado correctamente.')
+            return redirect('inicio')
+    else:
+        form = IngresoVirtualForm()
+    ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
+    return render(request, 'inicio.html', {
+        'form_virtual': form,
+        'ingresos_virtuales': ingresos_virtuales,
+    })
 
 # Vista para eliminar proveedor
 @login_required
@@ -146,12 +187,31 @@ def inicio(request):
 
     ingresos = IngresoEfectivo.objects.order_by('-fecha')
     total_efectivo = sum(ing.monto for ing in ingresos)
+    ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
+
+    gastos = Gasto.objects.order_by('-fecha')
+    suma_gastos = gastos.aggregate(total=models.Sum('monto'))['total'] or 0
 
     return render(request, 'inicio.html', {
         'form': form,
         'ingresos': ingresos,
         'total_efectivo': total_efectivo,
+        'ingresos_virtuales': ingresos_virtuales,
+        'gastos': gastos,
+        'suma_gastos': suma_gastos,
     })
+# Vista para agregar gastos
+@login_required
+def agregar_gasto(request):
+    if request.method == 'POST':
+        form = GastoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Gasto agregado correctamente.')
+            return redirect('inicio')
+    else:
+        form = GastoForm()
+    return render(request, 'agregar_gasto.html', {'form': form})
 
 @login_required
 def bienvenida(request):

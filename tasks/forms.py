@@ -1,9 +1,14 @@
-# tasks/forms.py
-
 from django import forms
+from .models import IngresoVirtual
+# Formulario para movimientos virtuales
+class IngresoVirtualForm(forms.ModelForm):
+    class Meta:
+        model = IngresoVirtual
+        fields = ['monto', 'descripcion']
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Producto, IngresoEfectivo, Proveedor
+from .models import Gasto
 
 # Formulario para proveedores
 class ProveedorForm(forms.ModelForm):
@@ -51,4 +56,8 @@ class RegistroUsuarioForm(UserCreationForm):
 class IngresoEfectivoForm(forms.ModelForm):
     class Meta:
         model = IngresoEfectivo
+        fields = ['monto', 'descripcion']
+class GastoForm(forms.ModelForm):
+    class Meta:
+        model = Gasto
         fields = ['monto', 'descripcion']

@@ -43,8 +43,22 @@
         </div>
         <div class="card">
           <h2><span>📉</span> Gastos</h2>
-          <p>Total gasto: $0</p>
-          <button class = "#gastos_agregar">Agregar</button> 
+          <p>Total gasto: ${{ suma_gastos }}</p>
+          <a href="{% url 'agregar_gasto' %}" class="btn btn-primary btn-sm mb-2">Agregar gasto</a>
+          <ul class="list-group list-group-flush">
+            {% for gasto in gastos %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ gasto.fecha|date:"d/m/Y H:i" }}</strong> - ${{ gasto.monto }}
+                  {% if gasto.descripcion %}
+                    <span class="text-muted">({{ gasto.descripcion }})</span>
+                  {% endif %}
+                </div>
+              </li>
+            {% empty %}
+              <li class="list-group-item">No hay gastos aún.</li>
+            {% endfor %}
+          </ul>
         </div>
         <!--
           <div class="cierre-dia">
@@ -105,12 +119,13 @@
           <h5 style="padding: 15px 20px 0; color:#132144;">💳 Movimientos virtuales</h5>
 
         <!-- Formulario para agregar movimiento virtual -->
-        <form id="formVirtual" class="row g-2 align-items-center px-3 py-2">
+        <form method="POST" action="{% url 'agregar_virtual' %}" class="row g-2 align-items-center px-3 py-2">
+          {% csrf_token %}
           <div class="col-auto">
-            <input type="number" id="montoVirtual" class="form-control form-control-sm" placeholder="Ingrese monto" required>
+            <input type="number" name="monto" class="form-control form-control-sm" placeholder="Ingrese monto" required>
           </div>
           <div class="col-auto">
-            <input type="text" id="descVirtual" class="form-control form-control-sm" placeholder="Descripción" required>
+            <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción" required>
           </div>
           <div class="col-auto">
             <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
@@ -119,7 +134,24 @@
 
         <!-- Lista de movimientos virtuales -->
         <h6 class="mt-3 px-3">Lista de ingresos</h6>
-        <ul id="listaVirtual" class="list-group list-group-flush"></ul>
+        <ul class="list-group list-group-flush">
+          {% for ingreso in ingresos_virtuales %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ ingreso.fecha|date:"d/m/Y H:i" }}</strong> - ${{ ingreso.monto }}
+                {% if ingreso.descripcion %}
+                  <span class="text-muted">({{ ingreso.descripcion }})</span>
+                {% endif %}
+              </div>
+              <div>
+                <a href="{% url 'editar_virtual' ingreso.id %}" class="btn btn-warning btn-sm me-1">✏️</a>
+                <a href="{% url 'eliminar_virtual' ingreso.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este movimiento virtual?')">🗑️</a>
+              </div>
+            </li>
+          {% empty %}
+            <li class="list-group-item">No hay ingresos virtuales aún.</li>
+          {% endfor %}
+        </ul>
         </div>
       </section>
     </main>
