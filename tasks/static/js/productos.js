@@ -5,11 +5,11 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function () {
       // Buscar la fila del producto
       let fila = this.closest("tr");
-      let stockCell = fila.querySelector("td:nth-child(5)"); // columna stock
-      let stock = parseInt(stockCell.innerText);
+      let cantidadCell = fila.querySelector("td:nth-child(5)"); // columna cantidad
+      let cantidad = parseInt(cantidadCell.innerText);
 
       // Aumentar stock en +1
-      stockCell.innerText = stock + 1;
+      cantidadCell.innerText = cantidad + 1;
     });
   });
 

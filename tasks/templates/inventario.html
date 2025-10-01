@@ -36,12 +36,12 @@
       <td>${{ producto.precio }}</td>
       <td>{{ producto.marca }}</td>
       <td>
-        <a href="{% url 'sumar_stock' producto.id %}" class="btn btn-success btn-sm me-1">➕ Stock</a>
-        <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm me-1">✏️ Editar</a>
+        <a href="{% url 'sumar_stock' producto.id %}" class="btn btn-success btn-sm me-1"> Cantidad</a>
+        <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm me-1"> Editar</a>
         <a href="{% url 'eliminar_producto' producto.id %}" 
            class="btn btn-danger btn-sm"
            onclick="return confirm('¿Estás seguro de eliminar este producto?');">
-          🗑️ Eliminar
+           Eliminar
         </a>
       </td>
     </tr>
