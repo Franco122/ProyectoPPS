@@ -128,7 +128,8 @@ def registrar_usuario(request):
         if form.is_valid():
             user = form.save()
             print("✅ Usuario creado:", user.username)  
-            messages.success(request, 'Usuario creado correctamente. Ahora podés iniciar sesión.')
+            # Quita este mensaje:
+            # messages.success(request, 'Usuario creado correctamente. Ahora podés iniciar sesión.')
             return redirect('login')
         else:
             print("❌ Errores del formulario:", form.errors) 
@@ -137,14 +138,13 @@ def registrar_usuario(request):
         form = RegistroUsuarioForm()
     return render(request, 'register.html', {'form': form})
 
-
-
 def registro(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Usuario registrado con éxito. Ya podés iniciar sesión.')
+            # Quita este mensaje:
+            # messages.success(request, 'Usuario registrado con éxito. Ya podés iniciar sesión.')
             return redirect('login')  
         else:
             messages.error(request, 'Por favor corregí los errores en el formulario.')
@@ -162,6 +162,10 @@ def login_usuario(request):
             return redirect('inicio')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
+    # Limpia los mensajes acumulados antes de renderizar el login
+    storage = messages.get_messages(request)
+    for _ in storage:
+        pass
     return render(request, 'login.html')
 
 # Logout

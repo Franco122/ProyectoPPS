@@ -27,7 +27,7 @@
            
             <td>
               <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                <button type="button" class="btn btn-success">Agregar</button>
+                <a href="{% url 'sumar_stock' producto.id %}" class="btn btn-success">Agregar</a>
                 <a href="{% url 'editar_producto' producto.id %}" class="btn btn-primary">Editar</a>
                 <button type="button" class="btn btn-danger">Eliminar</button>
             </div>

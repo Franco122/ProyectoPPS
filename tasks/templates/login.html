@@ -14,7 +14,9 @@
 
         {% if messages %}
           {% for message in messages %}
+              {% if 'error' in message.tags %}
             <div class="alert">{{ message }}</div>
+              {% endif %}
           {% endfor %}
         {% endif %}
 
