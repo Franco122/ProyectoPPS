@@ -1,3 +1,5 @@
+    # ...existing code...
+
 from django.contrib import admin
 from django.urls import path
 from django.shortcuts import redirect
@@ -15,10 +17,16 @@ urlpatterns = [
     # Vistas protegidas (solo accesibles con login)
     path('inicio/', views.inicio, name='inicio'),
     path('inventario/', views.inventario, name='inventario'),
+    path('productos/editar/<int:pk>/', views.editar_producto, name='editar_producto'),
+    path('productos/eliminar/<int:pk>/', views.eliminar_producto, name='eliminar_producto'),
+    path('productos/sumar-stock/<int:pk>/', views.sumar_stock, name='sumar_stock'),
     path('inventario/agregar/', views.agregar_producto, name='agregar_producto'),
     path('productos/', views.lista_productos, name='lista_productos'),
     path('agregar/', views.agregar_producto, name='agregar_producto'),
     path('proveedores/', views.proveedores, name='proveedores'),
+    path('proveedores/agregar/', views.agregar_proveedor, name='agregar_proveedor'),
+    path('proveedores/editar/<int:pk>/', views.editar_proveedor, name='editar_proveedor'),
+    path('proveedores/eliminar/<int:pk>/', views.eliminar_proveedor, name='eliminar_proveedor'),
     path('transacciones/', views.transacciones, name='transacciones'),
     path('agregar-efectivo/', views.agregar_efectivo, name='agregar_efectivo'),
     path('ingresos/editar/<int:pk>/', views.editar_ingreso, name='editar_ingreso'),

@@ -3,8 +3,13 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Producto
-from .models import IngresoEfectivo
+from .models import Producto, IngresoEfectivo, Proveedor
+
+# Formulario para proveedores
+class ProveedorForm(forms.ModelForm):
+    class Meta:
+        model = Proveedor
+        fields = ['nombre', 'empresa', 'telefono', 'email', 'direccion']
 
 class ProductoForm(forms.ModelForm):
     class Meta:

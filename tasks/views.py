@@ -1,18 +1,87 @@
-from django.shortcuts import render, redirect
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from .forms import RegistroUsuarioForm, ProductoForm
-from .models import Producto
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from .models import IngresoEfectivo
-from .forms import IngresoEfectivoForm
 from django.db import models
-from django.shortcuts import get_object_or_404
-from .models import IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario
-from datetime import datetime
 from django.db.models import Sum
+from datetime import datetime
+from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm
+from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor
+
+# Vista para eliminar proveedor
+@login_required
+def eliminar_proveedor(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    if request.method == 'POST':
+        proveedor.delete()
+        messages.success(request, 'Proveedor eliminado correctamente.')
+        return redirect('proveedores')
+    return render(request, 'eliminar_proveedor.html', {'proveedor': proveedor})
+
+# Vista para editar proveedor
+@login_required
+def editar_proveedor(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
+    if request.method == 'POST':
+        form = ProveedorForm(request.POST, instance=proveedor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proveedor editado correctamente.')
+            return redirect('proveedores')
+    else:
+        form = ProveedorForm(instance=proveedor)
+    return render(request, 'agregar_proveedor.html', {'form': form, 'editar': True, 'proveedor': proveedor})
+
+# Vista para sumar stock
+@login_required
+def sumar_stock(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    producto.stock += 1
+    producto.save()
+    messages.success(request, f'Se sumó 1 al stock de {producto.nombre}.')
+    return redirect('inventario')
+
+# Vista para eliminar producto
+@login_required
+def eliminar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        producto.delete()
+        messages.success(request, 'Producto eliminado correctamente.')
+        return redirect('inventario')
+    return render(request, 'eliminar_producto.html', {'producto': producto})
+
+# Vista para editar producto
+@login_required
+def editar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, instance=producto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Producto editado correctamente.')
+            return redirect('inventario')
+    else:
+        form = ProductoForm(instance=producto)
+    return render(request, 'agregar_producto.html', {'form': form, 'editar': True, 'producto': producto})
+
+# --- Vistas ---
+
+@login_required
+def agregar_proveedor(request):
+    from .forms import ProveedorForm
+    if request.method == 'POST':
+        form = ProveedorForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Proveedor agregado correctamente.')
+            return redirect('proveedores')
+    else:
+        form = ProveedorForm()
+    return render(request, 'agregar_proveedor.html', {'form': form, 'editar': False})
 
 
 # Registro
@@ -89,12 +158,23 @@ def bienvenida(request):
     return render(request, 'bienvenida.html', {'usuario': request.user})
 
 @login_required
+
 def inventario(request):
-    return render(request, 'inventario.html')
+    q = request.GET.get('q', '').strip()
+    productos = Producto.objects.all()
+    if q:
+        productos = productos.filter(
+            models.Q(nombre__icontains=q) |
+            models.Q(categoria__icontains=q) |
+            models.Q(marca__icontains=q)
+        )
+    return render(request, 'inventario.html', {'productos': productos})
 
 @login_required
 def proveedores(request):
-    return render(request, 'proveedores.html')  
+    from .models import Proveedor
+    proveedores = Proveedor.objects.all()
+    return render(request, 'proveedores.html', {'proveedores': proveedores})
 
 @login_required
 def transacciones(request):

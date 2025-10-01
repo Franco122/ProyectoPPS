@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+	<h2><img src="/static/images/logo.png" alt="Logo" style="width:40px;vertical-align:middle;"> Lista de Proveedores</h2>
+	<button class="btn btn-success mb-3" onclick="window.location.href='{% url 'agregar_proveedor' %}'">
+		<i class="fa fa-plus"></i> Agregar Proveedor
+	</button>
+	<table class="table table-bordered table-striped">
+		<thead class="thead-dark">
+			<tr>
+				<th>ID</th>
+				<th>Nombre</th>
+				<th>Empresa</th>
+				<th>Teléfono</th>
+				<th>Email</th>
+				<th>Dirección</th>
+				<th>Acciones</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% if proveedores %}
+				{% for proveedor in proveedores %}
+				<tr>
+					<td>{{ proveedor.id }}</td>
+					<td>{{ proveedor.nombre }}</td>
+					<td>{{ proveedor.empresa }}</td>
+					<td>{{ proveedor.telefono }}</td>
+					<td>{{ proveedor.email }}</td>
+					<td>{{ proveedor.direccion }}</td>
+					<td>
+						<a href="{% url 'editar_proveedor' proveedor.id %}" class="btn btn-primary btn-sm">Editar</a>
+						<a href="{% url 'eliminar_proveedor' proveedor.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este proveedor?');">Eliminar</a>
+					</td>
+				</tr>
+				{% endfor %}
+			{% else %}
+				<tr>
+					<td colspan="7" class="text-center">No hay proveedores registrados</td>
+				</tr>
+			{% endif %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}

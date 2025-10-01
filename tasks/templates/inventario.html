@@ -5,6 +5,11 @@
 {% block content %}
 <h2>📦 Lista de Productos</h2>
 
+<form method="get" class="mb-3 d-flex" style="gap:10px;">
+  <input type="text" name="q" class="form-control" placeholder="Buscar producto, categoría o marca" value="{{ request.GET.q }}">
+  <button type="submit" class="btn btn-primary">Filtrar</button>
+</form>
+
 <a href="{% url 'agregar_producto' %}" class="btn btn-success mb-3">
   <i class="bi bi-plus"></i> ➕ Agregar Producto
 </a>
@@ -29,9 +34,10 @@
       <td>{{ producto.categoria }}</td>
       <td>{{ producto.cantidad }}</td>
       <td>${{ producto.precio }}</td>
-      <td>${{ producto.marca }}</td>
+      <td>{{ producto.marca }}</td>
       <td>
-       
+        <a href="{% url 'sumar_stock' producto.id %}" class="btn btn-success btn-sm me-1">➕ Stock</a>
+        <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm me-1">✏️ Editar</a>
         <a href="{% url 'eliminar_producto' producto.id %}" 
            class="btn btn-danger btn-sm"
            onclick="return confirm('¿Estás seguro de eliminar este producto?');">
@@ -41,7 +47,7 @@
     </tr>
     {% empty %}
     <tr>
-      <td colspan="6" class="text-center">No hay productos registrados</td>
+      <td colspan="7" class="text-center">No hay productos registrados</td>
     </tr>
     {% endfor %}
   </tbody>

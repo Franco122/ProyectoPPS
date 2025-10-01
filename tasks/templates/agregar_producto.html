@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Agregar Producto</h2>
+<h2>{% if editar %}Editar Producto{% else %}Agregar Producto{% endif %}</h2>
 <form method="post">
   {% csrf_token %}
   {{ form.as_p }}
-  <button type="submit" class="btn btn-primary">Guardar</button>
+  <button type="submit" class="btn btn-primary">{% if editar %}Guardar Cambios{% else %}Guardar{% endif %}</button>
+  <a href="{% url 'inventario' %}" class="btn btn-secondary">Cancelar</a>
 </form>
 {% endblock %}
