@@ -46,12 +46,7 @@ def agregar_virtual(request):
             return redirect('inicio')
     else:
         form = IngresoVirtualForm()
-    ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
-    total_virtual = sum(getattr(ing, 'monto', 0) for ing in ingresos_virtuales)
-    return render(request, 'inicio.html', {
-        'form_virtual': form,
-        'ingresos_virtuales': ingresos_virtuales,
-    })
+    return render(request, 'agregar_virtual.html', {'form': form, 'editar': False})
 
 # Vista para eliminar proveedor
 @login_required
