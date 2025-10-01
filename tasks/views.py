@@ -80,9 +80,9 @@ def editar_proveedor(request, pk):
 @login_required
 def sumar_stock(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
-    producto.stock += 1
+    producto.cantidad += 1
     producto.save()
-    messages.success(request, f'Se sumó 1 al stock de {producto.nombre}.')
+    messages.success(request, f'Se sumó 1 a la cantidad de {producto.nombre}.')
     return redirect('inventario')
 
 # Vista para eliminar producto
@@ -274,14 +274,12 @@ def agregar_producto(request):
             categoria = form.cleaned_data['categoria'].strip().lower()
             cantidad = form.cleaned_data['cantidad']
             precio = form.cleaned_data['precio']
-            stock = form.cleaned_data['stock']
             marca = form.cleaned_data['marca']
 
             producto_existente = Producto.objects.filter(nombre=nombre, categoria=categoria).first()
 
             if producto_existente:
                 producto_existente.cantidad += cantidad
-                producto_existente.stock += stock
                 producto_existente.precio = precio  
                 producto_existente.save()
             else:

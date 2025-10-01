@@ -12,7 +12,6 @@
           <th>Categoría</th>
           <th>Cantidad</th>
           <th>Precio</th>
-          <th>Stock</th>
           <th>Marca</th>
           <th>Acciones</th>
         </tr>
@@ -24,13 +23,12 @@
             <td>{{ producto.categoria }}</td>
             <td>{{ producto.cantidad }}</td>
             <td>${{ producto.precio }}</td>
-            <td>{{ producto.stock }}</td>
             <td>{{ producto.marca }}</td>
            
             <td>
               <div class="d-grid gap-2 d-md-flex justify-content-md-center">
                 <button type="button" class="btn btn-success">Agregar</button>
-                <button type="button" class="btn btn-primary">Editar</button>
+                <a href="{% url 'editar_producto' producto.id %}" class="btn btn-primary">Editar</a>
                 <button type="button" class="btn btn-danger">Eliminar</button>
             </div>
             </td>
@@ -50,12 +48,11 @@ document.addEventListener("DOMContentLoaded", function () {
     btn.addEventListener("click", function () {
       
       let fila = this.closest("tr");
-      let stockCell = fila.querySelector("td:nth-child(5)");
-      let stock = parseInt(stockCell.innerText);
-      stockCell.innerText = stock + 1;
-    });
-  });
-
+      let cantidadCell = fila.querySelector("td:nth-child(3)");
+      let cantidad = parseInt(cantidadCell.innerText);
+      cantidadCell.innerText = cantidad + 1;
+});
+});
   document.querySelectorAll(".btn-danger").forEach(function (btn) {
     btn.addEventListener("click", function () {
       if (confirm("¿Seguro que deseas eliminar este producto?")) {
