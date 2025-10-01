@@ -47,6 +47,7 @@ def agregar_virtual(request):
     else:
         form = IngresoVirtualForm()
     ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
+    total_virtual = sum(getattr(ing, 'monto', 0) for ing in ingresos_virtuales)
     return render(request, 'inicio.html', {
         'form_virtual': form,
         'ingresos_virtuales': ingresos_virtuales,
@@ -188,6 +189,7 @@ def inicio(request):
     ingresos = IngresoEfectivo.objects.order_by('-fecha')
     total_efectivo = sum(ing.monto for ing in ingresos)
     ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
+    total_virtual = sum(getattr(ing, 'monto', 0) for ing in ingresos_virtuales)
 
     gastos = Gasto.objects.order_by('-fecha')
     suma_gastos = gastos.aggregate(total=models.Sum('monto'))['total'] or 0
@@ -197,6 +199,7 @@ def inicio(request):
         'ingresos': ingresos,
         'total_efectivo': total_efectivo,
         'ingresos_virtuales': ingresos_virtuales,
+        'total_virtual': total_virtual,
         'gastos': gastos,
         'suma_gastos': suma_gastos,
     })
