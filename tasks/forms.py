@@ -57,6 +57,12 @@ class IngresoEfectivoForm(forms.ModelForm):
     class Meta:
         model = IngresoEfectivo
         fields = ['monto', 'descripcion']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Añadimos campos dinámicamente para evitar evaluar la queryset en tiempo de import
+        self.fields['producto'] = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto (opcional)')
+        self.fields['cantidad_producto'] = forms.IntegerField(required=False, min_value=1, label='Cantidad a descontar')
 class GastoForm(forms.ModelForm):
     class Meta:
         model = Gasto

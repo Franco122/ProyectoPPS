@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum
 from datetime import datetime
 from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm, IngresoVirtualForm, GastoForm
@@ -201,6 +201,7 @@ def inicio(request):
         'total_virtual': total_virtual,
         'gastos': gastos,
         'suma_gastos': suma_gastos,
+        'productos_all': Producto.objects.all(),
     })
 # Vista para agregar gastos
 @login_required
@@ -299,11 +300,34 @@ def lista_productos(request):
     return render(request, 'lista_productos.html', {'productos': productos})
 
 
+@login_required
 def agregar_efectivo(request):
+    # Maneja el formulario de ingreso en efectivo y opcionalmente descuenta producto del inventario
     if request.method == 'POST':
-        monto = request.POST['monto']
-        descripcion = request.POST['descripcion']
-        IngresoEfectivo.objects.create(monto=monto, descripcion=descripcion)
+        form = IngresoEfectivoForm(request.POST)
+        if form.is_valid():
+            monto = form.cleaned_data['monto']
+            descripcion = form.cleaned_data['descripcion']
+            producto = form.cleaned_data.get('producto')
+            cantidad_producto = form.cleaned_data.get('cantidad_producto')
+
+            # Operación atómica: crear ingreso y descontar stock si corresponde
+            try:
+                with transaction.atomic():
+                    if producto and cantidad_producto:
+                        # Volver a obtener el producto con bloqueo para evitar condiciones de carrera
+                        producto = Producto.objects.select_for_update().get(pk=producto.pk)
+                        if producto.cantidad < cantidad_producto:
+                            messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {producto.cantidad}")
+                            return redirect('inicio')
+                        producto.cantidad -= cantidad_producto
+                        producto.save()
+                    IngresoEfectivo.objects.create(monto=monto, descripcion=descripcion)
+                    messages.success(request, 'Ingreso en efectivo agregado correctamente.')
+            except Exception as e:
+                messages.error(request, 'Ocurrió un error al procesar el ingreso.')
+        else:
+            messages.error(request, 'Formulario de ingreso inválido. Verificá los datos.')
     return redirect('inicio')
 
 

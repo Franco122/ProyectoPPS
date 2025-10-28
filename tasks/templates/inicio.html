@@ -88,6 +88,17 @@
     <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción" required>
   </div>
   <div class="col-auto">
+    <select name="producto" class="form-control form-control-sm">
+      <option value="">-- Producto (opcional) --</option>
+      {% for p in productos_all %}
+        <option value="{{ p.id }}">{{ p.nombre }} (stock: {{ p.cantidad }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <input type="number" name="cantidad_producto" class="form-control form-control-sm" placeholder="Cantidad a descontar" min="1">
+  </div>
+  <div class="col-auto">
     <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
   </div>
 </form>
