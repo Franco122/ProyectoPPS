@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-    <h2>Agregar Gasto</h2>
+    <h2>{% if editar %}Editar Gasto{% else %}Agregar Gasto{% endif %}</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Agregar</button>
+        <button type="submit" class="btn btn-primary">{% if editar %}Guardar cambios{% else %}Agregar{% endif %}</button>
         <a href="{% url 'inicio' %}" class="btn btn-secondary">Volver</a>
     </form>
 </div>

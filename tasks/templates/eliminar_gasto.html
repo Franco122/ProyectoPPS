@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Eliminar Gasto{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-body">
+      <h3 class="card-title">¿Eliminar gasto?</h3>
+      <p><strong>Fecha:</strong> {{ gasto.fecha|date:"d/m/Y H:i" }}</p>
+      <p><strong>Monto:</strong> ${{ gasto.monto }}</p>
+      <p><strong>Descripción:</strong> {{ gasto.descripcion }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a href="{% url 'inicio' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

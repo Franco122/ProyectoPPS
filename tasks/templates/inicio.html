@@ -54,6 +54,10 @@
                     <span class="text-muted">({{ gasto.descripcion }})</span>
                   {% endif %}
                 </div>
+                <div>
+                  <a href="{% url 'editar_gasto' gasto.id %}" class="btn btn-warning btn-sm me-1">✏️</a>
+                  <a href="{% url 'eliminar_gasto' gasto.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este gasto?')">🗑️</a>
+                </div>
               </li>
             {% empty %}
               <li class="list-group-item">No hay gastos aún.</li>

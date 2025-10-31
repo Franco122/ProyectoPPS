@@ -216,6 +216,30 @@ def agregar_gasto(request):
         form = GastoForm()
     return render(request, 'agregar_gasto.html', {'form': form})
 
+# Vista para editar gasto
+@login_required
+def editar_gasto(request, pk):
+    gasto = get_object_or_404(Gasto, pk=pk)
+    if request.method == 'POST':
+        form = GastoForm(request.POST, instance=gasto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Gasto editado correctamente.')
+            return redirect('inicio')
+    else:
+        form = GastoForm(instance=gasto)
+    return render(request, 'agregar_gasto.html', {'form': form, 'editar': True, 'gasto': gasto})
+
+# Vista para eliminar gasto
+@login_required
+def eliminar_gasto(request, pk):
+    gasto = get_object_or_404(Gasto, pk=pk)
+    if request.method == 'POST':
+        gasto.delete()
+        messages.success(request, 'Gasto eliminado correctamente.')
+        return redirect('inicio')
+    return render(request, 'eliminar_gasto.html', {'gasto': gasto})
+
 @login_required
 def bienvenida(request):
     return render(request, 'bienvenida.html', {'usuario': request.user})
@@ -242,7 +266,9 @@ def proveedores(request):
 @login_required
 def transacciones(request):
     ingresos = IngresoEfectivo.objects.all().order_by('-fecha')
+    ingresos_virtuales = IngresoVirtual.objects.all().order_by('-fecha')
     egresos = Egreso.objects.all().order_by('-fecha')
+    gastos = Gasto.objects.all().order_by('-fecha')
     cierres = CierreDiario.objects.all().order_by('-fecha')
 
     transacciones = []
@@ -253,12 +279,28 @@ def transacciones(request):
             'monto': ing.monto,
             'fecha': ing.fecha
         })
+    # incluir ingresos virtuales en el historial
+    for ving in ingresos_virtuales:
+        transacciones.append({
+            'descripcion': ving.descripcion,
+            'categoria': 'Ingreso Virtual',
+            'monto': ving.monto,
+            'fecha': ving.fecha
+        })
     for eg in egresos:
         transacciones.append({
             'descripcion': eg.descripcion,
             'categoria': 'Egreso',
             'monto': eg.monto,
             'fecha': eg.fecha
+        })
+    # incluir gastos como egresos
+    for gasto in gastos:
+        transacciones.append({
+            'descripcion': gasto.descripcion,
+            'categoria': 'Egreso',
+            'monto': gasto.monto,
+            'fecha': gasto.fecha
         })
     # Sort by fecha descending
     transacciones.sort(key=lambda x: x['fecha'], reverse=True)

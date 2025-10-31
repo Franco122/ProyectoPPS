@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Transacciones{% endblock %}
 
@@ -12,44 +13,96 @@
   <div class="card-body">
     <ul class="nav nav-tabs mb-3">
       <li class="nav-item">
-        <a class="nav-link active" href="#">Todas</a>
+        <button class="nav-link active" id="tab-todas" type="button">Todas</button>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="#">Ingresos</a>
+        <button class="nav-link" id="tab-ingresos" type="button">Ingresos</button>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="#">Egresos</a>
+        <button class="nav-link" id="tab-egresos" type="button">Egresos</button>
       </li>
-    </ul>
-    <ul class="list-group">
-      {% for transaccion in transacciones %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <span style="font-weight:bold;">{{ transaccion.descripcion }}</span><br>
-          <small>{{ transaccion.categoria }}</small>
-        </div>
-        <div class="text-end">
-          <span style="font-weight:bold;">${{ transaccion.monto }}</span><br>
-          <small>{{ transaccion.fecha }}</small>
-        </div>
-      </li>
-      {% empty %}
-      <li class="list-group-item">No hay transacciones registradas.</li>
-      {% endfor %}
     </ul>
 
-    
-<ul>
-  {% for cierre in cierres %}
-    <li>
-      {{ cierre.fecha }} - Ingresos: ${{ cierre.monto_ingresos }} |
-      Egresos: ${{ cierre.monto_egresos }} |
-      Total: ${{ cierre.monto_total }}
-    </li>
-  {% empty %}
-  
-  {% endfor %}
-</ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="todas" role="tabpanel" aria-labelledby="tab-todas">
+        <ul class="list-group">
+          {% for transaccion in transacciones %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <span style="font-weight:bold;">{{ transaccion.descripcion }}</span><br>
+                <small>{{ transaccion.categoria }}</small>
+              </div>
+              <div class="text-end">
+                <span style="font-weight:bold;">${{ transaccion.monto }}</span><br>
+                <small>{{ transaccion.fecha|date:"d/m/Y H:i" }}</small>
+              </div>
+            </li>
+          {% empty %}
+            <li class="list-group-item">No hay transacciones registradas.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="tab-pane fade" id="ingresos" role="tabpanel" aria-labelledby="tab-ingresos">
+        <ul class="list-group">
+          {% for transaccion in transacciones %}
+            {% if 'Ingreso' in transaccion.categoria %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <span style="font-weight:bold;">{{ transaccion.descripcion }}</span><br>
+                  <small>{{ transaccion.categoria }}</small>
+                </div>
+                <div class="text-end">
+                  <span style="font-weight:bold;">${{ transaccion.monto }}</span><br>
+                  <small>{{ transaccion.fecha|date:"d/m/Y H:i" }}</small>
+                </div>
+              </li>
+            {% endif %}
+          {% empty %}
+            <li class="list-group-item">No hay ingresos registrados.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="tab-pane fade" id="egresos" role="tabpanel" aria-labelledby="tab-egresos">
+        <ul class="list-group">
+          {% for transaccion in transacciones %}
+            {% if transaccion.categoria == 'Egreso' %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <span style="font-weight:bold;">{{ transaccion.descripcion }}</span><br>
+                  <small>{{ transaccion.categoria }}</small>
+                </div>
+                <div class="text-end">
+                  <span style="font-weight:bold;">${{ transaccion.monto }}</span><br>
+                  <small>{{ transaccion.fecha|date:"d/m/Y H:i" }}</small>
+                </div>
+              </li>
+            {% endif %}
+          {% empty %}
+            <li class="list-group-item">No hay egresos registrados.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {% if cierres %}
+    <div class="mt-4">
+      <h6>Cierres diarios</h6>
+      <ul class="list-group">
+        {% for cierre in cierres %}
+          <li class="list-group-item">
+            {{ cierre.fecha|date:"d/m/Y" }} - 
+            Ingresos: ${{ cierre.monto_ingresos }} |
+            Egresos: ${{ cierre.monto_egresos }} |
+            Total: ${{ cierre.monto_total }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
 </div>
+
+<script src="{% static 'js/transacciones.js' %}"></script>
 {% endblock %}
