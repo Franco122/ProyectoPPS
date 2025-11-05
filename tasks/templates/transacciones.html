@@ -29,7 +29,13 @@
           {% for transaccion in transacciones %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
               <div>
-                <span style="font-weight:bold;">{{ transaccion.descripcion }}</span><br>
+                <span style="font-weight:bold;">
+                  {% if transaccion.descripcion != 'Sin descripción' %}
+                    {{ transaccion.descripcion }}
+                  {% else %}
+                    <span class="text-muted">Sin descripción</span>
+                  {% endif %}
+                </span><br>
                 <small>{{ transaccion.categoria }}</small>
               </div>
               <div class="text-end">

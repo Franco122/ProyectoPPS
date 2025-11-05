@@ -38,12 +38,36 @@ def eliminar_virtual(request, pk):
 # Vista para agregar movimiento virtual
 @login_required
 def agregar_virtual(request):
+    # Maneja el formulario de ingreso virtual y opcionalmente descuenta producto del inventario
     if request.method == 'POST':
         form = IngresoVirtualForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Movimiento virtual agregado correctamente.')
-            return redirect('inicio')
+            monto = form.cleaned_data['monto']
+            descripcion = form.cleaned_data['descripcion']
+            producto = form.cleaned_data.get('producto')
+            cantidad_producto = form.cleaned_data.get('cantidad_producto')
+
+            try:
+                with transaction.atomic():
+                    if producto and cantidad_producto:
+                        producto = Producto.objects.select_for_update().get(pk=producto.pk)
+                        if producto.cantidad < cantidad_producto:
+                            messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {producto.cantidad}")
+                            return redirect('inicio')
+                        producto.cantidad -= cantidad_producto
+                        producto.save()
+                    IngresoVirtual.objects.create(
+                        monto=monto, 
+                        descripcion=descripcion,
+                        producto=producto if producto else None,
+                        cantidad_producto=cantidad_producto if producto else None
+                    )
+                    messages.success(request, 'Movimiento virtual agregado correctamente.')
+            except Exception:
+                messages.error(request, 'Ocurrió un error al procesar el ingreso virtual.')
+        else:
+            messages.error(request, 'Formulario de ingreso virtual inválido. Verificá los datos.')
+        return redirect('inicio')
     else:
         form = IngresoVirtualForm()
     return render(request, 'agregar_virtual.html', {'form': form, 'editar': False})
@@ -273,16 +297,32 @@ def transacciones(request):
 
     transacciones = []
     for ing in ingresos:
+        # Construir descripción combinada
+        descripcion_completa = ing.descripcion or ""
+        if ing.producto:
+            if descripcion_completa:
+                descripcion_completa = f"{ing.producto.nombre} x{ing.cantidad_producto} - {descripcion_completa}"
+            else:
+                descripcion_completa = f"{ing.producto.nombre} x{ing.cantidad_producto}"
+
         transacciones.append({
-            'descripcion': ing.descripcion,
+            'descripcion': descripcion_completa if descripcion_completa else "Sin descripción",
             'categoria': 'Ingreso Efectivo',
             'monto': ing.monto,
             'fecha': ing.fecha
         })
     # incluir ingresos virtuales en el historial
     for ving in ingresos_virtuales:
+        # Construir descripción combinada
+        descripcion_completa = ving.descripcion or ""
+        if ving.producto:
+            if descripcion_completa:
+                descripcion_completa = f"{ving.producto.nombre} x{ving.cantidad_producto} - {descripcion_completa}"
+            else:
+                descripcion_completa = f"{ving.producto.nombre} x{ving.cantidad_producto}"
+
         transacciones.append({
-            'descripcion': ving.descripcion,
+            'descripcion': descripcion_completa if descripcion_completa else "Sin descripción",
             'categoria': 'Ingreso Virtual',
             'monto': ving.monto,
             'fecha': ving.fecha
@@ -364,7 +404,12 @@ def agregar_efectivo(request):
                             return redirect('inicio')
                         producto.cantidad -= cantidad_producto
                         producto.save()
-                    IngresoEfectivo.objects.create(monto=monto, descripcion=descripcion)
+                    IngresoEfectivo.objects.create(
+                        monto=monto, 
+                        descripcion=descripcion,
+                        producto=producto if producto else None,
+                        cantidad_producto=cantidad_producto if producto else None
+                    )
                     messages.success(request, 'Ingreso en efectivo agregado correctamente.')
             except Exception as e:
                 messages.error(request, 'Ocurrió un error al procesar el ingreso.')
