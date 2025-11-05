@@ -34,18 +34,32 @@ class IngresoEfectivo(models.Model):
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.CharField(max_length=255, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
+    cantidad_producto = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"${self.monto} - {self.descripcion}"
+        base = f"${self.monto}"
+        if self.producto:
+            base += f" - {self.producto.nombre} (x{self.cantidad_producto})"
+        if self.descripcion:
+            base += f" - {self.descripcion}"
+        return base
     
 
 class IngresoVirtual(models.Model):
     monto = models.DecimalField(max_digits=10, decimal_places=2)
-    descripcion = models.CharField(max_length=200)
+    descripcion = models.CharField(max_length=200, blank=True)
     fecha = models.DateTimeField(auto_now_add=True)
+    producto = models.ForeignKey(Producto, on_delete=models.SET_NULL, null=True, blank=True)
+    cantidad_producto = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.fecha} - {self.monto}"
+        base = f"${self.monto}"
+        if self.producto:
+            base += f" - {self.producto.nombre} (x{self.cantidad_producto})"
+        if self.descripcion:
+            base += f" - {self.descripcion}"
+        return base
 
 class CierreDiario(models.Model):
     fecha = models.DateField()

@@ -1,20 +1,32 @@
 from django import forms
-from .models import IngresoVirtual
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from .models import Producto, IngresoEfectivo, Proveedor, IngresoVirtual, Gasto
+
+
 # Formulario para movimientos virtuales
 class IngresoVirtualForm(forms.ModelForm):
     class Meta:
         model = IngresoVirtual
         fields = ['monto', 'descripcion']
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
-from .models import Producto, IngresoEfectivo, Proveedor
-from .models import Gasto
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Añadimos campos dinámicamente para evitar evaluar la queryset en tiempo de import
+        # Producto ahora es obligatorio según requerimiento
+        self.fields['producto'] = forms.ModelChoiceField(queryset=Producto.objects.all(), required=True, label='Producto')
+        self.fields['cantidad_producto'] = forms.IntegerField(required=False, min_value=1, label='Cantidad a descontar')
+        # Hacer descripcion opcional en el formulario
+        if 'descripcion' in self.fields:
+            self.fields['descripcion'].required = False
+
 
 # Formulario para proveedores
 class ProveedorForm(forms.ModelForm):
     class Meta:
         model = Proveedor
         fields = ['nombre', 'empresa', 'telefono', 'email', 'direccion']
+
 
 class ProductoForm(forms.ModelForm):
     class Meta:
@@ -61,8 +73,14 @@ class IngresoEfectivoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Añadimos campos dinámicamente para evitar evaluar la queryset en tiempo de import
-        self.fields['producto'] = forms.ModelChoiceField(queryset=Producto.objects.all(), required=False, label='Producto (opcional)')
+        # Producto ahora es obligatorio según requerimiento
+        self.fields['producto'] = forms.ModelChoiceField(queryset=Producto.objects.all(), required=True, label='Producto')
         self.fields['cantidad_producto'] = forms.IntegerField(required=False, min_value=1, label='Cantidad a descontar')
+        # Hacer descripcion opcional en el formulario
+        if 'descripcion' in self.fields:
+            self.fields['descripcion'].required = False
+
+
 class GastoForm(forms.ModelForm):
     class Meta:
         model = Gasto
