@@ -211,7 +211,7 @@ def inicio(request):
 
     ingresos = IngresoEfectivo.objects.order_by('-fecha')
     # Calculamos monto a mostrar: si el ingreso tiene producto y cantidad_producto usamos
-    # el precio del producto * cantidad, en caso contrario usamos el monto guardado.
+    
     ingresos = IngresoEfectivo.objects.order_by('-fecha')
     ingresos_display = []
     for ing in ingresos:
