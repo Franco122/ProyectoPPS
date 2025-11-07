@@ -18,7 +18,7 @@ class Producto(models.Model):
     categoria = models.CharField(max_length=100)
     cantidad = models.IntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
-    marca = models.CharField(max_length=100, default="Sin marca")
+
 
     def save(self, *args, **kwargs):
         # Normalizamos a minúsculas y sin espacios extra

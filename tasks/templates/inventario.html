@@ -6,7 +6,7 @@
 <h2>📦 Lista de Productos</h2>
 
 <form method="get" class="mb-3 d-flex" style="gap:10px;">
-  <input type="text" name="q" class="form-control" placeholder="Buscar producto, categoría o marca" value="{{ request.GET.q }}">
+  <input type="text" name="q" class="form-control" placeholder="Buscar producto o categoría" value="{{ request.GET.q }}">
   <button type="submit" class="btn btn-primary">Filtrar</button>
 </form>
 
@@ -22,7 +22,7 @@
       <th>Categoría</th>
       <th>Cantidad</th>
       <th>Precio</th>
-      <th>Marca</th>
+      
       <th>Acciones</th>
     </tr>
   </thead>
@@ -34,7 +34,7 @@
       <td>{{ producto.categoria }}</td>
       <td>{{ producto.cantidad }}</td>
       <td>${{ producto.precio }}</td>
-      <td>{{ producto.marca }}</td>
+      
       <td>
         <a href="{% url 'sumar_stock' producto.id %}" class="btn btn-success btn-sm me-1">Agregar</a>
         <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm me-1"> Editar</a>
@@ -47,7 +47,7 @@
     </tr>
     {% empty %}
     <tr>
-      <td colspan="7" class="text-center">No hay productos registrados</td>
+      <td colspan="6" class="text-center">No hay productos registrados</td>
     </tr>
     {% endfor %}
   </tbody>

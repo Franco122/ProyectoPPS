@@ -299,8 +299,7 @@ def inventario(request):
     if q:
         productos = productos.filter(
             models.Q(nombre__icontains=q) |
-            models.Q(categoria__icontains=q) |
-            models.Q(marca__icontains=q)
+            models.Q(categoria__icontains=q)
         )
     return render(request, 'inventario.html', {'productos': productos})
 
@@ -382,7 +381,6 @@ def agregar_producto(request):
             categoria = form.cleaned_data['categoria'].strip().lower()
             cantidad = form.cleaned_data['cantidad']
             precio = form.cleaned_data['precio']
-            marca = form.cleaned_data['marca']
 
             producto_existente = Producto.objects.filter(nombre=nombre, categoria=categoria).first()
 
