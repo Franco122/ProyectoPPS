@@ -144,25 +144,8 @@ def movimientos_virtuales(request):
     else:
         formset = IngresoVirtualFormSet(queryset=IngresoVirtual.objects.none(), prefix='vitems')
 
-    ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
-    ingresos_virtual_display = []
-    for ving in ingresos_virtuales:
-        try:
-            if ving.producto and ving.cantidad_producto:
-                monto_calc = (ving.producto.precio or 0) * (ving.cantidad_producto or 0)
-                precio_unitario = ving.producto.precio
-            else:
-                monto_calc = ving.monto
-        except Exception:
-            monto_calc = ving.monto
-            precio_unitario = None
-        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc, 'precio_unitario': precio_unitario})
-    total_virtual = sum(item['monto_display'] for item in ingresos_virtual_display)
-
     return render(request, 'movimientos_virtuales.html', {
         'formset': formset,
-        'ingresos_virtuales': ingresos_virtual_display,
-        'total_virtual': total_virtual,
         'productos_all': Producto.objects.all(),
     })
 
