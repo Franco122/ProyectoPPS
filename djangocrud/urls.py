@@ -30,6 +30,7 @@ urlpatterns = [
     path('transacciones/', views.transacciones, name='transacciones'),
     path('agregar-efectivo/', views.agregar_efectivo, name='agregar_efectivo'),
     path('agregar-virtual/', views.agregar_virtual, name='agregar_virtual'),
+    path('movimientos/virtuales/', views.movimientos_virtuales, name='movimientos_virtuales'),
     path('ventas/agregar/', views.agregar_venta, name='agregar_venta'),
     path('ventas/', views.transacciones, name='ventas'),
     path('virtual/editar/<int:pk>/', views.editar_virtual, name='editar_virtual'),

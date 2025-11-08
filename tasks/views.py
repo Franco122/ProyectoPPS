@@ -75,6 +75,65 @@ def agregar_virtual(request):
         form = IngresoVirtualForm()
     return render(request, 'agregar_virtual.html', {'form': form, 'editar': False})
 
+
+@login_required
+def movimientos_virtuales(request):
+    """Página dedicada a movimientos virtuales: formulario y lista.
+    Lógica copiada de la gestión de ingresos en efectivo / agregar_virtual,
+    pero en una vista separada que muestra solo movimientos virtuales.
+    """
+    if request.method == 'POST':
+        form = IngresoVirtualForm(request.POST)
+        if form.is_valid():
+            monto = form.cleaned_data['monto']
+            descripcion = form.cleaned_data['descripcion']
+            producto = form.cleaned_data.get('producto')
+            cantidad_producto = form.cleaned_data.get('cantidad_producto')
+
+            try:
+                with transaction.atomic():
+                    if producto and cantidad_producto:
+                        producto = Producto.objects.select_for_update().get(pk=producto.pk)
+                        if producto.cantidad < cantidad_producto:
+                            messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {producto.cantidad}")
+                            return redirect('movimientos_virtuales')
+                        producto.cantidad -= cantidad_producto
+                        producto.save()
+                    IngresoVirtual.objects.create(
+                        monto=monto,
+                        descripcion=descripcion,
+                        producto=producto if producto else None,
+                        cantidad_producto=cantidad_producto if producto else None
+                    )
+                    messages.success(request, 'Movimiento virtual agregado correctamente.')
+            except Exception:
+                messages.error(request, 'Ocurrió un error al procesar el ingreso virtual.')
+        else:
+            messages.error(request, 'Formulario de ingreso virtual inválido. Verificá los datos.')
+        return redirect('movimientos_virtuales')
+    else:
+        form = IngresoVirtualForm()
+
+    ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
+    ingresos_virtual_display = []
+    for ving in ingresos_virtuales:
+        try:
+            if ving.producto and ving.cantidad_producto:
+                monto_calc = (ving.producto.precio or 0) * (ving.cantidad_producto or 0)
+            else:
+                monto_calc = ving.monto
+        except Exception:
+            monto_calc = ving.monto
+        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc})
+    total_virtual = sum(item['monto_display'] for item in ingresos_virtual_display)
+
+    return render(request, 'movimientos_virtuales.html', {
+        'form': form,
+        'ingresos_virtuales': ingresos_virtual_display,
+        'total_virtual': total_virtual,
+        'productos_all': Producto.objects.all(),
+    })
+
 # Vista para eliminar proveedor
 @login_required
 def eliminar_proveedor(request, pk):

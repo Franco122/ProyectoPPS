@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="container mt-4">
+  <h2>💳 Movimientos virtuales</h2>
+
+  <!-- Formulario para agregar movimiento virtual -->
+  <form method="POST" action="{% url 'movimientos_virtuales' %}" class="row g-2 align-items-center px-3 py-2">
+    {% csrf_token %}
+    <div class="col-auto">
+      <select id="producto_virtual" name="producto" class="form-control form-control-sm" required>
+        <option value="">-- Seleccione producto --</option>
+        {% for p in productos_all %}
+          <option value="{{ p.id }}" data-price="{{ p.precio }}">{{ p.nombre }} (stock: {{ p.cantidad }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <input id="cantidad_virtual" type="number" name="cantidad_producto" class="form-control form-control-sm" placeholder="Cantidad a descontar" min="1">
+    </div>
+    <div class="col-auto">
+      <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción (opcional)">
+    </div>
+    <div class="col-auto">
+      <input id="monto_virtual" type="number" step="0.01" name="monto" class="form-control form-control-sm" placeholder="Ingrese monto" readonly required>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
+    </div>
+  </form>
+
+  <!-- Lista de movimientos virtuales -->
+  <h6 class="mt-3">Lista de ingresos</h6>
+  <ul class="list-group list-group-flush">
+    {% for item in ingresos_virtuales %}
+      {% with ingreso=item.obj monto_display=item.monto_display %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ ingreso.fecha|date:"d/m/Y H:i" }}</strong> - ${{ monto_display|floatformat:2 }}
+          {% if ingreso.producto %}
+            <span class="text-muted">[{{ ingreso.producto.nombre }} x{{ ingreso.cantidad_producto }}]</span>
+          {% endif %}
+          {% if ingreso.descripcion %}
+            <span class="text-muted">({{ ingreso.descripcion }})</span>
+          {% endif %}
+        </div>
+        <div>
+          <a href="{% url 'editar_virtual' ingreso.id %}" class="btn btn-warning btn-sm me-1">✏️</a>
+          <a href="{% url 'eliminar_virtual' ingreso.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este movimiento virtual?')">🗑️</a>
+        </div>
+      </li>
+      {% endwith %}
+    {% empty %}
+      <li class="list-group-item">No hay ingresos virtuales aún.</li>
+    {% endfor %}
+  </ul>
+
+  <div class="mt-3">
+    <strong>Total virtual: ${{ total_virtual|floatformat:2 }}</strong>
+  </div>
+
+</main>
+
+<script>
+(function(){
+  function toNumber(v){ v = (v===undefined||v==='')?0:v; return parseFloat(String(v)) || 0; }
+  function setup(productSelectId, qtyInputId, montoInputId){
+    var prod = document.getElementById(productSelectId);
+    var qty = document.getElementById(qtyInputId);
+    var monto = document.getElementById(montoInputId);
+    if(!prod || !monto) return;
+    function update(){
+      var opt = prod.options[prod.selectedIndex];
+      var price = opt ? opt.dataset.price : undefined;
+      var p = toNumber(price);
+      var q = qty ? toNumber(qty.value) : 1;
+      if(q <= 0) q = 1;
+      if(p > 0){
+        monto.value = (p * q).toFixed(2);
+      }
+    }
+    prod.addEventListener('change', update);
+    if(qty) qty.addEventListener('input', update);
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    setup('producto_virtual','cantidad_virtual','monto_virtual');
+  });
+})();
+</script>
+
+{% endblock %}
