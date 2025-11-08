@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Registrar Venta</h2>
+  <form method="post" id="venta-form" onsubmit="return submitVentaForm(event)">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.descripcion.label_tag }}
+      {{ form.descripcion }}
+    </div>
+
+    <h4>Items</h4>
+    <table class="table" id="items-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Precio unitario</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ formset.management_form }}
+        {% for form in formset.forms %}
+        <tr class="item-row">
+          <td>{{ form.producto }}</td>
+          <td>
+            {{ form.cantidad }}
+            <script>
+              document.currentScript.previousElementSibling.setAttribute('min', '1');
+              document.currentScript.previousElementSibling.setAttribute('required', 'required');
+              document.currentScript.previousElementSibling.setAttribute('type', 'number');
+            </script>
+          </td>
+          <td>{{ form.precio_unitario }}</td>
+          <td>
+            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+            <button type="button" class="btn btn-sm btn-danger remove-line">Quitar</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button type="button" id="add-line" class="btn btn-secondary mb-3">Agregar línea</button>
+
+    <div>
+      <strong>Total: $<span id="venta-total">0.00</span></strong>
+    </div>
+
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary">Registrar Venta</button>
+      <a href="{% url 'transacciones' %}" class="btn btn-link">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  // Función para obtener el precio del producto seleccionado
+  async function getProductPrice(productoId) {
+    try {
+      const response = await fetch(`/get_product_price/${productoId}/`);
+      const data = await response.json();
+      return data.precio;
+    } catch (error) {
+      console.error('Error al obtener el precio:', error);
+      return 0;
+    }
+  }
+
+  // Función para actualizar el precio cuando se selecciona un producto
+  async function updatePrecio(select) {
+    const row = select.closest('tr');
+    const precioInput = row.querySelector('input[name$="-precio_unitario"]');
+    const productoId = select.value;
+    
+    if (productoId) {
+      const precio = await getProductPrice(productoId);
+      precioInput.value = precio;
+      precioInput.readOnly = true;  // Hacer el campo de precio de solo lectura
+      updateTotal();
+    } else {
+      precioInput.value = '';
+      precioInput.readOnly = false;
+    }
+  }
+
+  function parseFloatSafe(v){return parseFloat(v)||0}
+  function updateTotal(){
+    let total=0
+    document.querySelectorAll('#items-table tbody tr.item-row').forEach(function(row){
+      let qty = parseFloatSafe(row.querySelector('input[name$="-cantidad"]').value)
+      let price = parseFloatSafe(row.querySelector('input[name$="-precio_unitario"]').value)
+      total += qty*price
+    })
+    document.getElementById('venta-total').innerText = total.toFixed(2)
+  }
+
+  // Manejar cambios en la selección de productos
+  document.getElementById('items-table').addEventListener('change', function(e) {
+    if (e.target.tagName === 'SELECT') {
+      updatePrecio(e.target);
+    }
+  });
+
+  document.getElementById('items-table').addEventListener('input', function(e){
+    updateTotal()
+  })
+
+  document.getElementById('add-line').addEventListener('click', function(){
+    // clonar la última fila
+    const tbody = document.querySelector('#items-table tbody')
+    const last = tbody.querySelector('tr.item-row:last-of-type')
+    if(!last) return
+    const clone = last.cloneNode(true)
+    // limpiar inputs
+    clone.querySelectorAll('input, select').forEach(function(i){
+      if(i.type === 'number' || i.type === 'text') {
+        i.value=''
+        // Si es el campo de cantidad, asegurarnos que tenga las validaciones
+        if(i.name.endsWith('-cantidad')) {
+          i.setAttribute('min', '1')
+          i.setAttribute('required', 'required')
+          i.setAttribute('type', 'number')
+        }
+      }
+      if(i.tagName.toLowerCase() === 'select') i.selectedIndex = 0
+    })
+    // incrementar total forms
+    const totalForms = document.querySelector('#id_' + '{{ formset.prefix }}' + '-TOTAL_FORMS')
+    if(totalForms){
+      const idx = parseInt(totalForms.value)
+      clone.querySelectorAll('[name]').forEach(function(el){
+        const name = el.getAttribute('name')
+        const newName = name.replace(/-\d+-/, '-' + idx + '-')
+        el.setAttribute('name', newName)
+        const id = el.getAttribute('id')
+        if(id) el.setAttribute('id', id.replace(/-\d+-/, '-' + idx + '-'))
+      })
+      totalForms.value = idx + 1
+    }
+    tbody.appendChild(clone)
+  })
+
+  document.getElementById('items-table').addEventListener('click', function(e){
+    if(e.target && e.target.classList.contains('remove-line')){
+      const row = e.target.closest('tr')
+      // marcar DELETE if exists
+      const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]')
+      if(del){ del.checked = true; row.style.display='none'; updateTotal(); return }
+      row.remove(); updateTotal()
+    }
+  })
+
+  updateTotal()
+})()
+</script>
+<script>
+// Auto-fill precio_unitario when producto is selected using a product->price map
+(function(){
+  const productPrices = {
+    {% for p in productos_all %}
+      "{{ p.id }}": {{ p.precio|default:0 }},{% endfor %}
+  };
+
+  function onProductChange(select){
+    const val = select.value;
+    const row = select.closest('tr');
+    if(!row) return;
+    const priceInput = row.querySelector('input[name$="-precio_unitario"]');
+    if(priceInput && (!priceInput.value || priceInput.value === '')){
+      const p = productPrices[val] || 0;
+      priceInput.value = parseFloat(p).toFixed(2);
+      // trigger total update
+      const ev = new Event('input', { bubbles: true });
+      priceInput.dispatchEvent(ev);
+    }
+  }
+
+  document.addEventListener('change', function(e){
+    const el = e.target;
+    if(!el) return;
+    if(el.tagName.toLowerCase() === 'select' && /-producto$/.test(el.name)){
+      onProductChange(el);
+    }
+  });
+
+  // initialize existing selects
+  document.querySelectorAll('select[name$="-producto"]').forEach(function(s){
+    onProductChange(s);
+  });
+})();
+</script>
+<script>
+// Función para enviar el formulario vía AJAX
+window.submitVentaForm = async function(event) {
+  event.preventDefault();
+  const form = document.getElementById('venta-form');
+  const formData = new FormData(form);
+
+  try {
+    const response = await fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      // Cerrar la ventana y recargar la página padre
+      if (window.opener) {
+        window.opener.location.reload();
+      }
+      window.close();
+    } else {
+      alert('Error al procesar la venta: ' + (data.message || 'Error desconocido'));
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al procesar la venta. Por favor intenta nuevamente.');
+  }
+  return false;
+};
+</script>
+{% endblock %}

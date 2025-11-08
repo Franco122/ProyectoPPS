@@ -5,11 +5,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db import models, transaction
 from django.db.models import Sum
 from datetime import datetime
 from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm, IngresoVirtualForm, GastoForm
-from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor, Gasto
+from .forms import VentaForm, VentaItemForm
+from django.forms import inlineformset_factory
+from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor, Gasto, Venta, VentaItem
 
 # Vista para editar movimiento virtual
 @login_required
@@ -440,6 +443,96 @@ def agregar_efectivo(request):
 
 
 @login_required
+def agregar_venta(request):
+    """Registrar una venta con múltiples productos en un formset.
+    Resta stock de los productos y crea un registro de IngresoEfectivo con el total.
+    """
+    # crear formset en tiempo de ejecución para evitar import-time issues
+    VentaItemFormSet = inlineformset_factory(Venta, VentaItem, form=VentaItemForm, extra=1, can_delete=True)
+
+    if request.method == 'POST':
+        form = VentaForm(request.POST)
+        # usar una instancia temporal para validar inline formset
+        venta_temp = Venta()
+        formset = VentaItemFormSet(request.POST, instance=venta_temp, prefix='items')
+
+        if form.is_valid() and formset.is_valid():
+            try:
+                with transaction.atomic():
+                    # recopilar ids de productos en el formset (no eliminados)
+                    product_ids = []
+                    for f in formset:
+                        if not f.cleaned_data or f.cleaned_data.get('DELETE', False):
+                            continue
+                        product_ids.append(f.cleaned_data['producto'].pk)
+
+                    productos = Producto.objects.select_for_update().filter(pk__in=product_ids)
+                    prod_map = {p.pk: p for p in productos}
+
+                    total = 0
+                    items = []
+                    for f in formset:
+                        if not f.cleaned_data or f.cleaned_data.get('DELETE', False):
+                            continue
+                        producto = f.cleaned_data['producto']
+                        cantidad = f.cleaned_data['cantidad']
+                        precio_unitario = f.cleaned_data.get('precio_unitario') or producto.precio
+
+                        p = prod_map.get(producto.pk)
+                        if p is None:
+                            messages.error(request, f"Producto {producto.nombre} no encontrado.")
+                            return redirect('agregar_venta')
+                        if p.cantidad < cantidad:
+                            messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {p.cantidad}")
+                            return redirect('agregar_venta')
+
+                        total += precio_unitario * cantidad
+                        items.append((producto, cantidad, precio_unitario))
+
+                    venta = Venta.objects.create(total=total, descripcion=form.cleaned_data.get('descripcion',''))
+                    for producto, cantidad, precio_unitario in items:
+                        VentaItem.objects.create(venta=venta, producto=producto, cantidad=cantidad, precio_unitario=precio_unitario)
+                        p = prod_map[producto.pk]
+                        p.cantidad -= cantidad
+                        p.save()
+
+                    # Crear registro de ingreso en efectivo ligado a la venta (opcional)
+                    # Usar la descripción de la venta si está disponible, sino usar el número de venta
+                    descripcion = venta.descripcion if venta.descripcion else f"Venta #{venta.id}"
+                    IngresoEfectivo.objects.create(monto=total, descripcion=descripcion)
+
+                    messages.success(request, 'Venta registrada correctamente.')
+                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                        return JsonResponse({'success': True, 'message': 'Venta registrada correctamente'})
+                    return redirect('transacciones')
+            except Exception as e:
+                print('DEBUG: Exception in agregar_venta:', e)
+                messages.error(request, 'Ocurrió un error al procesar la venta.')
+        else:
+            # debug prints para tests/local
+            if not form.is_valid():
+                print('DEBUG: VentaForm errors:', form.errors)
+            if not formset.is_valid():
+                print('DEBUG: VentaItem formset errors:', formset.errors)
+            messages.error(request, 'Por favor corregí los errores en el formulario de venta.')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Por favor corregí los errores en el formulario de venta.',
+                    'errors': {
+                        'form': form.errors,
+                        'formset': formset.errors
+                    }
+                })
+    else:
+        form = VentaForm()
+        venta_temp = Venta()
+        formset = VentaItemFormSet(instance=venta_temp, prefix='items')
+
+    return render(request, 'agregar_venta.html', {'form': form, 'formset': formset, 'productos_all': Producto.objects.all()})
+
+
+@login_required
 def eliminar_ingreso(request, pk):
     ingreso = get_object_or_404(IngresoEfectivo, pk=pk)
     ingreso.delete()
@@ -472,5 +565,12 @@ def cerrar_dia(request):
             monto_total=total_final
         )
 
+@login_required
+def get_product_price(request, producto_id):
+    try:
+        producto = Producto.objects.get(pk=producto_id)
+        return JsonResponse({'precio': producto.precio})
+    except Producto.DoesNotExist:
+        return JsonResponse({'error': 'Producto no encontrado'}, status=404)
        
         return redirect('inicio')

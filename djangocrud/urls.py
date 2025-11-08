@@ -30,6 +30,8 @@ urlpatterns = [
     path('transacciones/', views.transacciones, name='transacciones'),
     path('agregar-efectivo/', views.agregar_efectivo, name='agregar_efectivo'),
     path('agregar-virtual/', views.agregar_virtual, name='agregar_virtual'),
+    path('ventas/agregar/', views.agregar_venta, name='agregar_venta'),
+    path('ventas/', views.transacciones, name='ventas'),
     path('virtual/editar/<int:pk>/', views.editar_virtual, name='editar_virtual'),
     path('virtual/eliminar/<int:pk>/', views.eliminar_virtual, name='eliminar_virtual'),
     path('ingresos/editar/<int:pk>/', views.editar_ingreso, name='editar_ingreso'),
@@ -38,4 +40,5 @@ urlpatterns = [
     path('agregar-gasto/', views.agregar_gasto, name='agregar_gasto'),
     path('gastos/editar/<int:pk>/', views.editar_gasto, name='editar_gasto'),
     path('gastos/eliminar/<int:pk>/', views.eliminar_gasto, name='eliminar_gasto'),
+    path('get_product_price/<int:producto_id>/', views.get_product_price, name='get_product_price'),
 ]

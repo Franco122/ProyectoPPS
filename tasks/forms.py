@@ -85,3 +85,36 @@ class GastoForm(forms.ModelForm):
     class Meta:
         model = Gasto
         fields = ['monto', 'descripcion']
+
+
+from django.forms import inlineformset_factory
+
+
+class VentaForm(forms.ModelForm):
+    class Meta:
+        from .models import Venta
+        model = Venta
+        fields = ['descripcion']
+
+
+class VentaItemForm(forms.ModelForm):
+    class Meta:
+        from .models import VentaItem
+        model = VentaItem
+        fields = ['producto', 'cantidad', 'precio_unitario']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # hacer el campo de precio de solo lectura y opcional
+        if 'precio_unitario' in self.fields:
+            self.fields['precio_unitario'].required = False
+            self.fields['precio_unitario'].widget.attrs['readonly'] = True
+        
+        # Configurar la validación de cantidad
+        if 'cantidad' in self.fields:
+            self.fields['cantidad'].min_value = 1
+            self.fields['cantidad'].widget.attrs['min'] = '1'
+            self.fields['cantidad'].error_messages = {
+                'min_value': 'La cantidad debe ser mayor a 0',
+                'required': 'La cantidad es requerida',
+            }
