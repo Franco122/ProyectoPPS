@@ -89,13 +89,24 @@
 
   function parseFloatSafe(v){return parseFloat(v)||0}
   function updateTotal(){
-    let total=0
+    let total = 0
     document.querySelectorAll('#items-table tbody tr.item-row').forEach(function(row){
-      let qty = parseFloatSafe(row.querySelector('input[name$="-cantidad"]').value)
-      let price = parseFloatSafe(row.querySelector('input[name$="-precio_unitario"]').value)
-      total += qty*price
+      // Solo considerar filas visibles
+      if (row.style.display !== 'none') {
+        let qty = parseFloatSafe(row.querySelector('input[name$="-cantidad"]').value)
+        let price = parseFloatSafe(row.querySelector('input[name$="-precio_unitario"]').value)
+        total += qty * price
+      }
     })
     document.getElementById('venta-total').innerText = total.toFixed(2)
+    
+    // Habilitar/deshabilitar el botón de submit basado en la validez
+    const submitBtn = document.querySelector('button[type="submit"]')
+    if (submitBtn) {
+      const hasValidProducts = document.querySelectorAll('#items-table tbody tr.item-row:not([style*="display: none"])').length > 0
+      const hasPositiveTotal = total > 0
+      submitBtn.disabled = !hasValidProducts || !hasPositiveTotal
+    }
   }
 
   // Manejar cambios en la selección de productos
@@ -147,12 +158,43 @@
   document.getElementById('items-table').addEventListener('click', function(e){
     if(e.target && e.target.classList.contains('remove-line')){
       const row = e.target.closest('tr')
+      if (!row) return;
+      
+      // Solo permitir eliminar si hay más de una fila visible
+      const visibleRows = document.querySelectorAll('#items-table tbody tr.item-row:not([style*="display: none"])')
+      if (visibleRows.length <= 1) {
+        alert('Debe haber al menos un producto en la venta')
+        return
+      }
+
       // marcar DELETE if exists
       const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]')
-      if(del){ del.checked = true; row.style.display='none'; updateTotal(); return }
-      row.remove(); updateTotal()
+      if(del){ 
+        del.checked = true
+        row.style.display = 'none'
+        updateTotal()
+        return 
+      }
+      row.remove()
+      updateTotal()
+      
+      // Validar que quede al menos una fila después de eliminar
+      setTimeout(() => {
+        const remainingRows = document.querySelectorAll('#items-table tbody tr.item-row:not([style*="display: none"])')
+        if (remainingRows.length === 0) {
+          document.getElementById('add-line').click()
+        }
+      }, 0)
     }
   })
+
+  // Asegurarse que siempre haya al menos una fila al inicio
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#items-table tbody tr.item-row:not([style*="display: none"])')
+    if (rows.length === 0) {
+      document.getElementById('add-line').click()
+    }
+  }, 0)
 
   updateTotal()
 })()

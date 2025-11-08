@@ -2,11 +2,118 @@
 {% block content %}
 <div class="container mt-4">
     <h2>{% if editar %}Editar Movimiento Virtual{% else %}Agregar Movimiento Virtual{% endif %}</h2>
-    <form method="post">
+    <form method="post" id="movimiento-form" onsubmit="return validarFormulario(event)">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-success">{% if editar %}Guardar Cambios{% else %}Agregar{% endif %}</button>
+        <div class="mb-3">
+            {{ form.producto.label_tag }}
+            {{ form.producto }}
+        </div>
+        <div class="mb-3">
+            {{ form.cantidad_producto.label_tag }}
+            {{ form.cantidad_producto }}
+        </div>
+        <div class="mb-3">
+            {{ form.monto.label_tag }}
+            {{ form.monto }}
+        </div>
+        <div class="mb-3">
+            {{ form.descripcion.label_tag }}
+            {{ form.descripcion }}
+        </div>
+        
+        <button type="submit" class="btn btn-success" id="submitBtn">
+            {% if editar %}Guardar Cambios{% else %}Agregar{% endif %}
+        </button>
         <a href="{% url 'inicio' %}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>
+
+<script>
+(function(){
+    function parseFloatSafe(v) {
+        return parseFloat(v) || 0;
+    }
+
+    function updateMonto() {
+        const productoSelect = document.querySelector('[name="producto"]');
+        const cantidadInput = document.querySelector('[name="cantidad_producto"]');
+        const montoInput = document.querySelector('[name="monto"]');
+        
+        if (!productoSelect || !cantidadInput || !montoInput) return;
+
+        const option = productoSelect.selectedOptions[0];
+        if (!option) return;
+
+        const precio = parseFloatSafe(option.dataset.price);
+        const cantidad = parseFloatSafe(cantidadInput.value);
+        
+        if (precio > 0 && cantidad > 0) {
+            montoInput.value = (precio * cantidad).toFixed(2);
+        }
+
+        validarFormulario();
+    }
+
+    // Configurar event listeners
+    document.querySelector('[name="producto"]')?.addEventListener('change', updateMonto);
+    document.querySelector('[name="cantidad_producto"]')?.addEventListener('input', updateMonto);
+    document.querySelector('[name="monto"]')?.addEventListener('input', validarFormulario);
+
+    // Validar al cargar la página
+    updateMonto();
+})();
+
+function validarFormulario(event) {
+    if (event) {
+        event.preventDefault();
+    }
+
+    const submitBtn = document.getElementById('submitBtn');
+    const montoInput = document.querySelector('[name="monto"]');
+    const cantidadInput = document.querySelector('[name="cantidad_producto"]');
+    
+    let isValid = true;
+    let errorMessage = '';
+
+    // Validar monto
+    const monto = parseFloat(montoInput?.value || '0');
+    if (!monto || monto <= 0) {
+        isValid = false;
+        errorMessage = 'El monto debe ser mayor a 0';
+    }
+
+    // Validar cantidad
+    const cantidad = parseInt(cantidadInput?.value || '0');
+    if (!cantidad || cantidad <= 0) {
+        isValid = false;
+        errorMessage = 'La cantidad debe ser mayor a 0';
+    }
+
+    // Actualizar estado del botón
+    if (submitBtn) {
+        submitBtn.disabled = !isValid;
+    }
+
+    if (event && !isValid) {
+        alert(errorMessage);
+        return false;
+    }
+
+    if (event && isValid) {
+        const form = document.getElementById('movimiento-form');
+        // Si la validación pasa y es un submit real, enviar el formulario
+        if (window.opener) {
+            form.submit();
+            setTimeout(() => {
+                window.opener.location.reload();
+                window.close();
+            }, 500);
+        } else {
+            form.submit();
+        }
+    }
+
+    return isValid;
+}
+</script>
 {% endblock %}

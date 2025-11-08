@@ -87,10 +87,21 @@
   function updateTotal(){
     let total = 0;
     document.querySelectorAll('#vitems-table tbody tr.item-row').forEach(function(row){
-      const m = parseFloatSafe(row.querySelector('input[name$="-monto"]').value);
-      total += m;
+      // Solo considerar filas visibles
+      if (row.style.display !== 'none') {
+        const m = parseFloatSafe(row.querySelector('input[name$="-monto"]').value);
+        total += m;
+      }
     });
     document.getElementById('virtual-total').innerText = total.toFixed(2);
+    
+    // Habilitar/deshabilitar el botón de submit basado en la validez
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      const hasValidProducts = document.querySelectorAll('#vitems-table tbody tr.item-row:not([style*="display: none"])').length > 0;
+      const hasPositiveTotal = total > 0;
+      submitBtn.disabled = !hasValidProducts || !hasPositiveTotal;
+    }
   }
 
   document.addEventListener('change', function(e){
@@ -117,10 +128,32 @@
   document.addEventListener('click', function(e){
     if(e.target && e.target.classList.contains('remove-line')){
       const row = e.target.closest('tr');
+      if (!row) return;
+      
+      // Solo permitir eliminar si hay más de una fila visible
+      const visibleRows = document.querySelectorAll('#vitems-table tbody tr.item-row:not([style*="display: none"])')
+      if (visibleRows.length <= 1) {
+        alert('Debe haber al menos un producto en el movimiento')
+        return
+      }
+
       const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-      if(del){ del.checked = true; row.style.display='none'; updateTotal(); return }
+      if(del){ 
+        del.checked = true; 
+        row.style.display='none'; 
+        updateTotal(); 
+        return 
+      }
       row.remove();
       updateTotal();
+      
+      // Validar que quede al menos una fila después de eliminar
+      setTimeout(() => {
+        const remainingRows = document.querySelectorAll('#vitems-table tbody tr.item-row:not([style*="display: none"])')
+        if (remainingRows.length === 0) {
+          document.getElementById('add-line-v').click()
+        }
+      }, 0)
     }
   });
 
@@ -152,6 +185,15 @@
   // initialize totals for existing rows
   document.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('select[name$="-producto"]').forEach(function(s){ if(s.value) updateMontoForSelect(s) });
+    
+    // Asegurarse que siempre haya al menos una fila al inicio
+    setTimeout(() => {
+      const rows = document.querySelectorAll('#vitems-table tbody tr.item-row:not([style*="display: none"])')
+      if (rows.length === 0) {
+        document.getElementById('add-line-v').click()
+      }
+    }, 0)
+    
     updateTotal();
   });
 
