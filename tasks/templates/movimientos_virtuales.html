@@ -4,88 +4,190 @@
 <main class="container mt-4">
   <h2>💳 Movimientos virtuales</h2>
 
-  <!-- Formulario para agregar movimiento virtual -->
-  <form method="POST" action="{% url 'movimientos_virtuales' %}" class="row g-2 align-items-center px-3 py-2">
+  <!-- Formulario para agregar varios movimientos virtuales (formset) -->
+  <form method="POST" action="{% url 'movimientos_virtuales' %}" id="virtual-form" onsubmit="return submitVirtualForm(event)">
     {% csrf_token %}
-    <div class="col-auto">
-      <select id="producto_virtual" name="producto" class="form-control form-control-sm" required>
-        <option value="">-- Seleccione producto --</option>
-        {% for p in productos_all %}
-          <option value="{{ p.id }}" data-price="{{ p.precio }}">{{ p.nombre }} (stock: {{ p.cantidad }})</option>
+    <div class="mb-3">
+      <input type="text" name="descripcion_general" class="form-control form-control-sm" placeholder="Descripción general (opcional)">
+    </div>
+    <h4>Items</h4>
+    <table class="table" id="vitems-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Monto</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ formset.management_form }}
+        {% for form in formset.forms %}
+        <tr class="item-row">
+          <td>{{ form.producto }}</td>
+          <td>
+            {{ form.cantidad_producto }}
+            <script>document.currentScript.previousElementSibling.setAttribute('min','1'); document.currentScript.previousElementSibling.setAttribute('required','required');</script>
+          </td>
+          <td>{{ form.monto }}</td>
+          <td>
+            {% if form.DELETE %}{{ form.DELETE }}{% endif %}
+            <button type="button" class="btn btn-sm btn-danger remove-line">Quitar</button>
+          </td>
+        </tr>
         {% endfor %}
-      </select>
+      </tbody>
+    </table>
+
+    <button type="button" id="add-line-v" class="btn btn-secondary mb-3">Agregar Producto</button>
+
+    <div>
+      <strong>Total: $<span id="virtual-total">0.00</span></strong>
     </div>
-    <div class="col-auto">
-      <input id="cantidad_virtual" type="number" name="cantidad_producto" class="form-control form-control-sm" placeholder="Cantidad a descontar" min="1">
-    </div>
-    <div class="col-auto">
-      <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Descripción (opcional)">
-    </div>
-    <div class="col-auto">
-      <input id="monto_virtual" type="number" step="0.01" name="monto" class="form-control form-control-sm" placeholder="Ingrese monto" readonly required>
-    </div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary btn-sm">Agregar</button>
+
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary">Agregar</button>
+      <a href="{% url 'inicio' %}" class="btn btn-link">Cancelar</a>
     </div>
   </form>
 
-  <!-- Lista de movimientos virtuales -->
-  <h6 class="mt-3">Lista de ingresos</h6>
-  <ul class="list-group list-group-flush">
-    {% for item in ingresos_virtuales %}
-      {% with ingreso=item.obj monto_display=item.monto_display %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <strong>{{ ingreso.fecha|date:"d/m/Y H:i" }}</strong> - ${{ monto_display|floatformat:2 }}
-          {% if ingreso.producto %}
-            <span class="text-muted">[{{ ingreso.producto.nombre }} x{{ ingreso.cantidad_producto }}]</span>
-          {% endif %}
-          {% if ingreso.descripcion %}
-            <span class="text-muted">({{ ingreso.descripcion }})</span>
-          {% endif %}
-        </div>
-        <div>
-          <a href="{% url 'editar_virtual' ingreso.id %}" class="btn btn-warning btn-sm me-1">✏️</a>
-          <a href="{% url 'eliminar_virtual' ingreso.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este movimiento virtual?')">🗑️</a>
-        </div>
-      </li>
-      {% endwith %}
-    {% empty %}
-      <li class="list-group-item">No hay ingresos virtuales aún.</li>
-    {% endfor %}
-  </ul>
-
-  <div class="mt-3">
-    <strong>Total virtual: ${{ total_virtual|floatformat:2 }}</strong>
-  </div>
 
 </main>
 
 <script>
 (function(){
-  function toNumber(v){ v = (v===undefined||v==='')?0:v; return parseFloat(String(v)) || 0; }
-  function setup(productSelectId, qtyInputId, montoInputId){
-    var prod = document.getElementById(productSelectId);
-    var qty = document.getElementById(qtyInputId);
-    var monto = document.getElementById(montoInputId);
-    if(!prod || !monto) return;
-    function update(){
-      var opt = prod.options[prod.selectedIndex];
-      var price = opt ? opt.dataset.price : undefined;
-      var p = toNumber(price);
-      var q = qty ? toNumber(qty.value) : 1;
-      if(q <= 0) q = 1;
-      if(p > 0){
-        monto.value = (p * q).toFixed(2);
-      }
-    }
-    prod.addEventListener('change', update);
-    if(qty) qty.addEventListener('input', update);
+  function parseFloatSafe(v){return parseFloat(v)||0}
+
+  async function getProductPrice(productoId){
+    try{
+      const resp = await fetch(`/get_product_price/${productoId}/`);
+      const data = await resp.json();
+      return data.precio;
+    }catch(e){ console.error('getProductPrice', e); return 0 }
   }
-  document.addEventListener('DOMContentLoaded', function(){
-    setup('producto_virtual','cantidad_virtual','monto_virtual');
+
+  async function updateMontoForSelect(select){
+    const row = select.closest('tr');
+    const cantidadInput = row.querySelector('input[name$="-cantidad_producto"]');
+    const montoInput = row.querySelector('input[name$="-monto"]');
+    const productoId = select.value;
+    if(!montoInput) return;
+    if(productoId){
+      const precio = await getProductPrice(productoId);
+      const qty = parseFloatSafe(cantidadInput ? cantidadInput.value : 1);
+      montoInput.value = (precio * (qty>0?qty:1)).toFixed(2);
+      montoInput.readOnly = true;
+    } else {
+      montoInput.value = '';
+      montoInput.readOnly = false;
+    }
+    updateTotal();
+  }
+
+  function updateTotal(){
+    let total = 0;
+    document.querySelectorAll('#vitems-table tbody tr.item-row').forEach(function(row){
+      const m = parseFloatSafe(row.querySelector('input[name$="-monto"]').value);
+      total += m;
+    });
+    document.getElementById('virtual-total').innerText = total.toFixed(2);
+  }
+
+  document.addEventListener('change', function(e){
+    const el = e.target;
+    if(!el) return;
+    if(el.tagName.toLowerCase()==='select' && /-producto$/.test(el.name)){
+      updateMontoForSelect(el);
+    }
   });
+
+  document.addEventListener('input', function(e){
+    // recalc total when monto or cantidad change
+    if(e.target && (/-monto$/.test(e.target.name) || /-cantidad_producto$/.test(e.target.name))){
+      // if quantity changed and product selected, update monto accordingly
+      const row = e.target.closest('tr');
+      if(row){
+        const sel = row.querySelector('select[name$="-producto"]');
+        if(sel && sel.value){ updateMontoForSelect(sel); return }
+      }
+      updateTotal();
+    }
+  });
+
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.classList.contains('remove-line')){
+      const row = e.target.closest('tr');
+      const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if(del){ del.checked = true; row.style.display='none'; updateTotal(); return }
+      row.remove();
+      updateTotal();
+    }
+  });
+
+  document.getElementById('add-line-v').addEventListener('click', function(){
+    const tbody = document.querySelector('#vitems-table tbody');
+    const last = tbody.querySelector('tr.item-row:last-of-type');
+    if(!last) return;
+    const clone = last.cloneNode(true);
+    // clear values
+    clone.querySelectorAll('input, select').forEach(function(i){
+      if(i.tagName.toLowerCase()==='select') i.selectedIndex=0;
+      if(i.type==='number' || i.type==='text') i.value='';
+    });
+    // increment TOTAL_FORMS
+    const totalForms = document.querySelector('#id_vitems-TOTAL_FORMS');
+    if(totalForms){
+      const idx = parseInt(totalForms.value);
+      clone.querySelectorAll('[name]').forEach(function(el){
+        const name = el.getAttribute('name');
+        const newName = name.replace(/-\d+-/, '-' + idx + '-');
+        el.setAttribute('name', newName);
+        const id = el.getAttribute('id'); if(id) el.setAttribute('id', id.replace(/-\d+-/, '-' + idx + '-'));
+      });
+      totalForms.value = idx + 1;
+    }
+    tbody.appendChild(clone);
+  });
+
+  // initialize totals for existing rows
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('select[name$="-producto"]').forEach(function(s){ if(s.value) updateMontoForSelect(s) });
+    updateTotal();
+  });
+
 })();
+</script>
+
+<script>
+// Envío AJAX del formulario y cierre de popup al agregar
+async function submitVirtualForm(event){
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  try{
+    const resp = await fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      credentials: 'same-origin'
+    });
+    const data = await resp.json();
+    if(data.success){
+      if(window.opener){
+        window.opener.location.reload();
+      }
+      window.close();
+    } else {
+      alert('Error: ' + (data.message || 'Error desconocido'));
+    }
+  }catch(err){
+    console.error('Error enviando formulario virtual:', err);
+    alert('Error al procesar el formulario. Revisá la consola.');
+  }
+  return false;
+}
 </script>
 
 {% endblock %}

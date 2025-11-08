@@ -52,6 +52,8 @@ def agregar_virtual(request):
 
             try:
                 with transaction.atomic():
+                    # descripción general opcional (si el usuario la completó en la parte superior)
+                    general_desc = (request.POST.get('descripcion_general') or '').strip()
                     if producto and cantidad_producto:
                         producto = Producto.objects.select_for_update().get(pk=producto.pk)
                         if producto.cantidad < cantidad_producto:
@@ -82,37 +84,65 @@ def movimientos_virtuales(request):
     Lógica copiada de la gestión de ingresos en efectivo / agregar_virtual,
     pero en una vista separada que muestra solo movimientos virtuales.
     """
-    if request.method == 'POST':
-        form = IngresoVirtualForm(request.POST)
-        if form.is_valid():
-            monto = form.cleaned_data['monto']
-            descripcion = form.cleaned_data['descripcion']
-            producto = form.cleaned_data.get('producto')
-            cantidad_producto = form.cleaned_data.get('cantidad_producto')
+    # Usar un formset para permitir múltiples productos en un solo envío
+    from django.forms import modelformset_factory
+    IngresoVirtualFormSet = modelformset_factory(IngresoVirtual, form=IngresoVirtualForm, extra=1, can_delete=True)
 
+    if request.method == 'POST':
+        formset = IngresoVirtualFormSet(request.POST, queryset=IngresoVirtual.objects.none(), prefix='vitems')
+        if formset.is_valid():
             try:
                 with transaction.atomic():
-                    if producto and cantidad_producto:
-                        producto = Producto.objects.select_for_update().get(pk=producto.pk)
-                        if producto.cantidad < cantidad_producto:
-                            messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {producto.cantidad}")
-                            return redirect('movimientos_virtuales')
-                        producto.cantidad -= cantidad_producto
-                        producto.save()
-                    IngresoVirtual.objects.create(
-                        monto=monto,
-                        descripcion=descripcion,
-                        producto=producto if producto else None,
-                        cantidad_producto=cantidad_producto if producto else None
-                    )
-                    messages.success(request, 'Movimiento virtual agregado correctamente.')
-            except Exception:
-                messages.error(request, 'Ocurrió un error al procesar el ingreso virtual.')
+                    # descripción general opcional (si el usuario la completó en la parte superior)
+                    general_desc = (request.POST.get('descripcion_general') or '').strip()
+                    # procesar cada formulario válido (no marcado para DELETE)
+                    for f in formset:
+                        if not f.cleaned_data or f.cleaned_data.get('DELETE', False):
+                            continue
+                        producto = f.cleaned_data.get('producto')
+                        cantidad_producto = f.cleaned_data.get('cantidad_producto')
+                        monto = f.cleaned_data.get('monto')
+                        descripcion = f.cleaned_data.get('descripcion')
+                        # si hay una descripción general, la usamos en lugar de la descripción por línea
+                        if general_desc:
+                            descripcion = general_desc
+
+                        if producto and cantidad_producto:
+                            p = Producto.objects.select_for_update().get(pk=producto.pk)
+                            if p.cantidad < cantidad_producto:
+                                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                                    return JsonResponse({'success': False, 'message': f'Stock insuficiente para {producto.nombre}. Stock actual: {p.cantidad}'}, status=400)
+                                messages.error(request, f"Stock insuficiente para {producto.nombre}. Stock actual: {p.cantidad}")
+                                return redirect('movimientos_virtuales')
+                            p.cantidad -= cantidad_producto
+                            p.save()
+
+                        # crear el ingreso virtual por cada línea
+                        IngresoVirtual.objects.create(
+                            monto=monto,
+                            descripcion=descripcion,
+                            producto=producto if producto else None,
+                            cantidad_producto=cantidad_producto if producto else None
+                        )
+
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': True, 'message': 'Movimientos virtuales agregados correctamente'})
+                messages.success(request, 'Movimientos virtuales agregados correctamente.')
+                return redirect('movimientos_virtuales')
+            except Exception as e:
+                print('DEBUG: Exception in movimientos_virtuales:', e)
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'message': 'Ocurrió un error al procesar los ingresos virtuales.'}, status=500)
+                messages.error(request, 'Ocurrió un error al procesar los ingresos virtuales.')
+                return redirect('movimientos_virtuales')
         else:
-            messages.error(request, 'Formulario de ingreso virtual inválido. Verificá los datos.')
-        return redirect('movimientos_virtuales')
+            # formset inválido
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Formulario inválido', 'errors': formset.errors}, status=400)
+            messages.error(request, 'Por favor corregí los errores en el formulario.')
+            return redirect('movimientos_virtuales')
     else:
-        form = IngresoVirtualForm()
+        formset = IngresoVirtualFormSet(queryset=IngresoVirtual.objects.none(), prefix='vitems')
 
     ingresos_virtuales = IngresoVirtual.objects.order_by('-fecha')
     ingresos_virtual_display = []
@@ -120,15 +150,17 @@ def movimientos_virtuales(request):
         try:
             if ving.producto and ving.cantidad_producto:
                 monto_calc = (ving.producto.precio or 0) * (ving.cantidad_producto or 0)
+                precio_unitario = ving.producto.precio
             else:
                 monto_calc = ving.monto
         except Exception:
             monto_calc = ving.monto
-        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc})
+            precio_unitario = None
+        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc, 'precio_unitario': precio_unitario})
     total_virtual = sum(item['monto_display'] for item in ingresos_virtual_display)
 
     return render(request, 'movimientos_virtuales.html', {
-        'form': form,
+        'formset': formset,
         'ingresos_virtuales': ingresos_virtual_display,
         'total_virtual': total_virtual,
         'productos_all': Producto.objects.all(),
@@ -292,11 +324,13 @@ def inicio(request):
         try:
             if ving.producto and ving.cantidad_producto:
                 monto_calc = (ving.producto.precio or 0) * (ving.cantidad_producto or 0)
+                precio_unitario = ving.producto.precio
             else:
                 monto_calc = ving.monto
         except Exception:
             monto_calc = ving.monto
-        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc})
+            precio_unitario = None
+        ingresos_virtual_display.append({'obj': ving, 'monto_display': monto_calc, 'precio_unitario': precio_unitario})
     total_virtual = sum(item['monto_display'] for item in ingresos_virtual_display)
 
     gastos = Gasto.objects.order_by('-fecha')
