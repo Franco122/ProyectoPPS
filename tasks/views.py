@@ -187,8 +187,14 @@ def sumar_stock(request, pk):
 def eliminar_producto(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
     if request.method == 'POST':
-        producto.delete()
-        messages.success(request, 'Producto eliminado correctamente.')
+        try:
+            # Eliminar primero los VentaItem asociados
+            VentaItem.objects.filter(producto=producto).delete()
+            # Luego eliminar el producto
+            producto.delete()
+            messages.success(request, 'Producto eliminado correctamente.')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el producto: {str(e)}')
         return redirect('inventario')
     return render(request, 'eliminar_producto.html', {'producto': producto})
 
