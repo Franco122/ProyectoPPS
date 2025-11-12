@@ -13,7 +13,7 @@
     <div style="margin-top:20px; max-width:720px;">
       <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.1)">
         <h3>Resumen del día</h3>
-  <p><strong>Fecha de cierre:</strong> {{ fecha_cierre|date:"d/m/Y" }}</p>
+  <p><strong>Fecha y hora de cierre:</strong> {{ fecha_cierre|date:"d/m/Y H:i" }}</p>
   <p><strong>Ingresos en efectivo del día:</strong> ${{ monto_ingresos }}</p>
   <p><strong>Egresos del día:</strong> ${{ monto_egresos }}</p>
         <hr>

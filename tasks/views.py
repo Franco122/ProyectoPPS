@@ -804,9 +804,10 @@ def cerrar_caja(request):
 
         # Actualizar la sesión de caja abierta (si existe)
         caja = CajaSession.objects.filter(is_open=True).last()
+        cierre_datetime = timezone.now()
         if caja:
             caja.is_open = False
-            caja.closed_at = timezone.now()
+            caja.closed_at = cierre_datetime
             try:
                 caja.closing_amount = Decimal(total_final) + Decimal(caja.opening_amount or 0)
             except Exception:
@@ -814,13 +815,13 @@ def cerrar_caja(request):
             caja.save()
 
         messages.success(request, f'Caja cerrada. Total efectivo del día: ${total_final}. Movimientos borrados del día.')
-        # Mostrar resumen del cierre inmediatamente
+        # Mostrar resumen del cierre inmediatamente (enviamos datetime para mostrar hora)
         return render(request, 'cierre_resultado.html', {
             'monto_ingresos': ingresos,
             'monto_egresos': egresos,
             'monto_total': total_final,
             'caja': caja,
-            'fecha_cierre': hoy,
+            'fecha_cierre': cierre_datetime,
         })
 
 @login_required

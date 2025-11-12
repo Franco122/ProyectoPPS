@@ -92,21 +92,6 @@
       </div>
     </div>
 
-    {% if cierres %}
-    <div class="mt-4">
-      <h6>Cierres diarios</h6>
-      <ul class="list-group">
-        {% for cierre in cierres %}
-          <li class="list-group-item">
-            {{ cierre.fecha|date:"d/m/Y" }} - 
-            Ingresos: ${{ cierre.monto_ingresos }} |
-            Egresos: ${{ cierre.monto_egresos }} |
-            Total: ${{ cierre.monto_total }}
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
   </div>
 </div>
 

@@ -13,11 +13,11 @@
         <h2>Iniciar sesión</h2>
 
         {% if messages %}
-          {% for message in messages %}
-              {% if 'error' in message.tags %}
-            <div class="alert">{{ message }}</div>
-              {% endif %}
-          {% endfor %}
+          {% if user.is_authenticated or request.method == 'POST' %}
+            {% for message in messages %}
+              <div class="alert">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
         {% endif %}
 
         <form method="post" id="loginForm">
