@@ -67,6 +67,22 @@ class CierreDiario(models.Model):
     monto_egresos = models.DecimalField(max_digits=10, decimal_places=2)
     monto_total = models.DecimalField(max_digits=10, decimal_places=2)
 
+
+class CajaSession(models.Model):
+    """Registro sencillo de una sesión de caja: apertura y cierre.
+    Al abrir se guarda el monto inicial; al cerrar se registra el monto de cierre
+    y la sesión se marca como cerrada (is_open=False).
+    """
+    opening_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opened_at = models.DateTimeField(auto_now_add=True)
+    is_open = models.BooleanField(default=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closing_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        status = 'Abierta' if self.is_open else 'Cerrada'
+        return f"Caja {status} - {self.opening_amount} (abierta: {self.opened_at:%Y-%m-%d %H:%M})"
+
 class Egreso(models.Model):
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.CharField(max_length=200)

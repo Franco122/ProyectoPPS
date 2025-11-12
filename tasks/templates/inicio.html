@@ -32,6 +32,37 @@
           
 
           <h3>Total: ${{ total_efectivo }}</h3>
+
+          <!-- Caja controls: abrir / cerrar -->
+          {% if caja and caja.is_open %}
+            <p style="margin-top:8px;">(incluye apertura: <strong>${{ caja.opening_amount }}</strong>)</p>
+            <form method="post" action="{% url 'cerrar_caja' %}" onsubmit="return confirm('¿Seguro que deseás cerrar la caja? Esto eliminará los movimientos en efectivo del día.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">Cerrar caja</button>
+            </form>
+          {% else %}
+            <div style="margin-top:8px;">
+              <button id="abrir-caja-btn" class="btn btn-success btn-sm">Abrir caja</button>
+            </div>
+            <form method="post" id="abrir-caja-form" action="{% url 'abrir_caja' %}" style="display:none; margin-top:8px;">
+              {% csrf_token %}
+              <div class="d-flex">
+                <input name="opening_amount" type="number" step="0.01" placeholder="Monto inicial" required class="form-control form-control-sm" style="max-width:140px; margin-right:8px;">
+                <button type="submit" class="btn btn-primary btn-sm">Abrir</button>
+              </div>
+            </form>
+            <script>
+              document.addEventListener('DOMContentLoaded', function(){
+                var btn = document.getElementById('abrir-caja-btn');
+                var form = document.getElementById('abrir-caja-form');
+                if(btn && form){
+                  btn.addEventListener('click', function(){
+                    form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+                  });
+                }
+              });
+            </script>
+          {% endif %}
         </div>
         <div class="card">
           <h2><span>💳</span> Virtual</h2>

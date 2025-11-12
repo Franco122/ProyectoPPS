@@ -9,10 +9,12 @@ from django.http import JsonResponse
 from django.db import models, transaction
 from django.db.models import Sum
 from datetime import datetime
+from decimal import Decimal
+from django.utils import timezone
 from .forms import RegistroUsuarioForm, ProductoForm, IngresoEfectivoForm, ProveedorForm, IngresoVirtualForm, GastoForm
 from .forms import VentaForm, VentaItemForm
 from django.forms import inlineformset_factory
-from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor, Gasto, Venta, VentaItem
+from .models import Producto, IngresoEfectivo, IngresoVirtual, Egreso, CierreDiario, Proveedor, Gasto, Venta, VentaItem, CajaSession
 
 # Vista para editar movimiento virtual
 @login_required
@@ -324,15 +326,30 @@ def inicio(request):
 
     gastos = Gasto.objects.order_by('-fecha')
     suma_gastos = gastos.aggregate(total=models.Sum('monto'))['total'] or 0
+    # obtener sesión de caja abierta (si existe)
+    caja = CajaSession.objects.filter(is_open=True).last()
+
+    # Si hay una caja abierta, incluir el monto de apertura en el total a mostrar
+    try:
+        total_efectivo_display = Decimal(str(total_efectivo))
+    except Exception:
+        total_efectivo_display = Decimal(0)
+    if caja and caja.is_open:
+        try:
+            total_efectivo_display = total_efectivo_display + (caja.opening_amount or Decimal(0))
+        except Exception:
+            # fallback, no sumar si hay problema
+            pass
 
     return render(request, 'inicio.html', {
         'form': form,
         'ingresos': ingresos_display,
-        'total_efectivo': total_efectivo,
+        'total_efectivo': total_efectivo_display,
         'ingresos_virtuales': ingresos_virtual_display,
         'total_virtual': total_virtual,
         'gastos': gastos,
         'suma_gastos': suma_gastos,
+        'caja': caja,
         'productos_all': Producto.objects.all(),
     })
 # Vista para agregar gastos
@@ -571,6 +588,13 @@ def agregar_venta(request):
                         total += precio_unitario * cantidad
                         items.append((producto, cantidad, precio_unitario))
 
+                    # don't create a sale with zero or negative total
+                    if total <= 0:
+                        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                            return JsonResponse({'success': False, 'message': 'El total de la venta debe ser mayor a 0.'})
+                        messages.error(request, 'El total de la venta debe ser mayor a 0.')
+                        return redirect('agregar_venta')
+
                     venta = Venta.objects.create(total=total, descripcion=form.cleaned_data.get('descripcion',''))
                     for producto, cantidad, precio_unitario in items:
                         VentaItem.objects.create(venta=venta, producto=producto, cantidad=cantidad, precio_unitario=precio_unitario)
@@ -591,21 +615,104 @@ def agregar_venta(request):
                 print('DEBUG: Exception in agregar_venta:', e)
                 messages.error(request, 'Ocurrió un error al procesar la venta.')
         else:
-            # debug prints para tests/local
-            if not form.is_valid():
-                print('DEBUG: VentaForm errors:', form.errors)
-            if not formset.is_valid():
-                print('DEBUG: VentaItem formset errors:', formset.errors)
-            messages.error(request, 'Por favor corregí los errores en el formulario de venta.')
+            # Si el formset falló (frecuente con clonación JS incorrecta), intentamos
+            # parsear manualmente los campos tipo items-<i>-producto / cantidad / precio_unitario
+            print('DEBUG: VentaForm valid?', form.is_valid(), 'VentaItem formset valid?', formset.is_valid())
+            print('DEBUG: VentaForm errors:', form.errors)
+            print('DEBUG: VentaItem formset errors:', formset.errors)
+
+            # Sólo intentar fallback si viene por AJAX (el formulario de ventas usa AJAX)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Por favor corregí los errores en el formulario de venta.',
-                    'errors': {
-                        'form': form.errors,
-                        'formset': formset.errors
-                    }
-                })
+                post = request.POST
+                # encontrar índices disponibles en POST para items
+                indices = set()
+                for k in post.keys():
+                    if k.startswith(formset.prefix + '-') and k.count('-') >= 2:
+                        parts = k.split('-')
+                        # formato: prefix-index-field
+                        if len(parts) >= 3:
+                            try:
+                                idx = int(parts[1])
+                                indices.add(idx)
+                            except Exception:
+                                continue
+
+                # construir items desde POST
+                items = []
+                total = 0
+                product_ids = []
+                for i in sorted(indices):
+                    # comprobar si marcado para delete
+                    delete_key = f"{formset.prefix}-{i}-DELETE"
+                    if post.get(delete_key) in ['on', 'true', '1']:
+                        continue
+                    prod_key = f"{formset.prefix}-{i}-producto"
+                    qty_key = f"{formset.prefix}-{i}-cantidad"
+                    price_key = f"{formset.prefix}-{i}-precio_unitario"
+                    try:
+                        prod_id = int(post.get(prod_key)) if post.get(prod_key) else None
+                    except Exception:
+                        prod_id = None
+                    try:
+                        cantidad = int(post.get(qty_key) or 0)
+                    except Exception:
+                        cantidad = 0
+                    try:
+                        precio_unitario = Decimal(post.get(price_key) or 0)
+                    except Exception:
+                        precio_unitario = Decimal(0)
+
+                    if not prod_id or cantidad <= 0:
+                        continue
+                    try:
+                        producto = Producto.objects.get(pk=prod_id)
+                    except Producto.DoesNotExist:
+                        continue
+
+                    # si no vino precio, usar precio del producto
+                    if precio_unitario == 0:
+                        precio_unitario = producto.precio or Decimal(0)
+
+                    line_total = (precio_unitario or Decimal(0)) * cantidad
+                    total += line_total
+                    items.append((producto, cantidad, precio_unitario))
+                    product_ids.append(prod_id)
+
+                if not items:
+                    return JsonResponse({'success': False, 'message': 'No se detectaron líneas válidas en la venta.'})
+
+                # procesar creación de venta y items con bloqueo de stock
+                try:
+                    with transaction.atomic():
+                        productos = Producto.objects.select_for_update().filter(pk__in=product_ids)
+                        prod_map = {p.pk: p for p in productos}
+
+                        # Prevent storing zero-total ventas
+                        if total <= 0:
+                            return JsonResponse({'success': False, 'message': 'El total de la venta debe ser mayor a 0.'})
+
+                        venta = Venta.objects.create(total=total, descripcion=form.cleaned_data.get('descripcion','') if form.is_valid() else '')
+                        for producto, cantidad, precio_unitario in items:
+                            p = prod_map.get(producto.pk)
+                            if p is None:
+                                raise Exception(f'Producto {producto.pk} no encontrado')
+                            if p.cantidad < cantidad:
+                                return JsonResponse({'success': False, 'message': f'Stock insuficiente para {producto.nombre}. Stock actual: {p.cantidad}'})
+                            VentaItem.objects.create(venta=venta, producto=producto, cantidad=cantidad, precio_unitario=precio_unitario)
+                            p.cantidad -= cantidad
+                            p.save()
+
+                        # Crear ingreso en efectivo ligado a la venta
+                        descripcion = venta.descripcion if venta.descripcion else f"Venta #{venta.id}"
+                        IngresoEfectivo.objects.create(monto=total, descripcion=descripcion)
+
+                    return JsonResponse({'success': True, 'message': 'Venta registrada correctamente (fallback).'})
+                except Exception as e:
+                    print('DEBUG: Exception in agregar_venta fallback:', e)
+                    return JsonResponse({'success': False, 'message': 'Ocurrió un error al procesar la venta (fallback).'} , status=500)
+
+            # Non-AJAX fallback: show errors
+            messages.error(request, 'Por favor corregí los errores en el formulario de venta.')
     else:
         form = VentaForm()
         venta_temp = Venta()
@@ -646,6 +753,75 @@ def cerrar_dia(request):
             monto_egresos=egresos,
             monto_total=total_final
         )
+
+
+@login_required
+def abrir_caja(request):
+    """Abrir una nueva sesión de caja con un monto inicial.
+    Si ya existe una sesión abierta, devolver mensaje de error.
+    """
+    if request.method == 'POST':
+        try:
+            amount_raw = request.POST.get('opening_amount', '0')
+            amount = Decimal(amount_raw or '0')
+        except Exception:
+            messages.error(request, 'Monto inválido para abrir la caja.')
+            return redirect('inicio')
+
+        # Si ya hay una caja abierta, no permitimos abrir otra
+        if CajaSession.objects.filter(is_open=True).exists():
+            messages.error(request, 'Ya existe una caja abierta. Primero cerrala.')
+            return redirect('inicio')
+
+        CajaSession.objects.create(opening_amount=amount)
+        messages.success(request, f'Caja abierta con ${amount}.')
+    return redirect('inicio')
+
+
+@login_required
+def cerrar_caja(request):
+    """Cerrar la caja actual: calcular totales de efectivo, guardar cierre diario,
+    borrar los registros de ingresos/ventas en efectivo del día (reset de movimientos)
+    y marcar la sesión de caja como cerrada.
+    """
+    if request.method == 'POST':
+        hoy = datetime.now().date()
+        ingresos = IngresoEfectivo.objects.filter(fecha__date=hoy).aggregate(total=Sum('monto'))['total'] or 0
+        egresos = Egreso.objects.filter(fecha__date=hoy).aggregate(total=Sum('monto'))['total'] or 0
+        total_final = ingresos - egresos
+
+        # registrar cierre diario
+        CierreDiario.objects.create(
+            fecha=hoy,
+            monto_ingresos=ingresos,
+            monto_egresos=egresos,
+            monto_total=total_final
+        )
+
+        # Borrar movimientos en efectivo y ventas del día para "resetear" la caja
+        IngresoEfectivo.objects.filter(fecha__date=hoy).delete()
+        Venta.objects.filter(fecha__date=hoy).delete()
+
+        # Actualizar la sesión de caja abierta (si existe)
+        caja = CajaSession.objects.filter(is_open=True).last()
+        if caja:
+            caja.is_open = False
+            caja.closed_at = timezone.now()
+            try:
+                caja.closing_amount = Decimal(total_final) + Decimal(caja.opening_amount or 0)
+            except Exception:
+                caja.closing_amount = Decimal(total_final)
+            caja.save()
+
+        messages.success(request, f'Caja cerrada. Total efectivo del día: ${total_final}. Movimientos borrados del día.')
+        # Mostrar resumen del cierre inmediatamente
+        return render(request, 'cierre_resultado.html', {
+            'monto_ingresos': ingresos,
+            'monto_egresos': egresos,
+            'monto_total': total_final,
+            'caja': caja,
+            'fecha_cierre': hoy,
+        })
 
 @login_required
 def get_product_price(request, producto_id):
