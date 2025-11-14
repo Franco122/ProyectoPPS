@@ -96,4 +96,26 @@
 </div>
 
 <script src="{% static 'js/transacciones.js' %}"></script>
+
+  <!-- Historial de cierres de caja -->
+  <div class="card" style="max-width:400px; margin:20px;">
+    <div class="card-header">
+      <strong>Historial de cierres de caja</strong>
+    </div>
+    <div class="card-body">
+      {% if cajas %}
+        <ul class="list-group">
+          {% for caja in cajas %}
+            <li class="list-group-item">
+              <div style="font-weight:bold;">Cerrada: {{ caja.closed_at|date:"d/m/Y H:i" }}</div>
+              <div>Apertura: {{ caja.opened_at|date:"d/m/Y H:i" }} | Monto apertura: ${{ caja.opening_amount }}</div>
+              <div>Monto cierre: ${{ caja.closing_amount }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No hay cierres de caja registrados.</p>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}

@@ -418,6 +418,8 @@ def transacciones(request):
     egresos = Egreso.objects.all().order_by('-fecha')
     gastos = Gasto.objects.all().order_by('-fecha')
     cierres = CierreDiario.objects.all().order_by('-fecha')
+    # historial de sesiones de caja cerradas
+    cajas = CajaSession.objects.filter(is_open=False).order_by('-closed_at')
 
     transacciones = []
     for ing in ingresos:
@@ -471,7 +473,8 @@ def transacciones(request):
 
     return render(request, 'transacciones.html', {
         'transacciones': transacciones,
-        'cierres': cierres
+        'cierres': cierres,
+        'cajas': cajas,
     })
 
 @login_required
